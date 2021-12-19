@@ -12,7 +12,7 @@ n = 3; % number of nodes/customers whatever
 p = 3; % dimension of primal variable for each node
 c = 1; % stepsize parameter of COCA (should be tuned later)
 alpha = 1; % parameter for determining transmission
-rho = 2^(-10); % sequence for determining transmission
+rho = 0.5; % sequence for determining transmission
 
 Adjacency = ones(n,n) - eye(n,n);
 G = graph(Adjacency);
@@ -48,39 +48,9 @@ for i=1:3
     y{i} = ones(p,1); %10*rand(p,1);
     f{i} = @(x) (A{i}*x - y{i})'*(A{i}*x-y{i});
 end
-%% Implementing classic consensus ADMM algorithm of Boyd to compare things to
 
-iterations = 1000;
 
-x_ADMM = zeros(n,p);
-l_ADMM = zeros(n,p);
-z_ADMM = zeros(p,1);
-rho_ADMM = 2^(-10);
-
-C = {};
-for i=1:n
-    C{i} = A{i}'*A{i}+rho_ADMM*eye(p,p);
-end
-
-for k=1:iterations
-    for i=1:n
-        x_ADMM(:,i) = C{i}\( A{i}*y{i} + z_ADMM - 0.5*l_ADMM(:,i) );
-    end
-end
-
-temp3 = 0;
-for i=1:n
-    temp3 = temp3+ x_ADMM(:,i) + (1/rho_ADMM)*l_ADMM(:,i);
-end
-z_ADMM = (1/n)*temp3;
-
-for k=1:iterations
-    for i=1:n
-        l_ADMM(:,i) = l_ADMM(:,i) + rho_ADMM*(x_ADMM(:,i) - z_ADMM);
-    end
-end
-
-%% Update step for censored ADMM
+%% Update step
 % for this cost function the primal update has a closed form expression, so
 % we will use that here. In other examples this would be replaced with a
 % fminsearch thingy
@@ -91,7 +61,7 @@ for i=1:n
 end
 
 %%
-
+iterations = 25000;
 
 transmission = zeros(n,iterations);
 
@@ -130,6 +100,34 @@ for k=1:iterations
     end
 end
 
+%% Implementing classic ADMM algorithm of Boyd to compare things to
 
+x_ADMM = zeros(n,p);
+l_ADMM = zeros(n,p);
+z_ADMM = zeros(p,1);
+rho_ADMM = 2^(-8);
+
+C = {};
+for i=1:n
+    C{i} = A{i}'*A{i}+rho_ADMM*eye(p,p);
+end
+
+for k=1:iterations
+    for i=1:n
+        x_ADMM(:,i) = C{i}\( A{i}*y{i} + z_ADMM - 0.5*l_ADMM(:,i) );
+    end
+end
+
+temp3 = 0;
+for i=1:n
+    temp3 = temp3+ x_ADMM(:,i) + (1/rho_ADMM)*l_ADMM(:,i);
+end
+z_ADMM = (1/n)*temp3;
+
+for k=1:iterations
+    for i=1:n
+        l_ADMM(:,i) = l_ADMM(:,i) + rho_ADMM*(x_ADMM(:,i) - z_ADMM);
+    end
+end
 
 
