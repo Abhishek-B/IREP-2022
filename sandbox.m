@@ -10,9 +10,7 @@ Censored ADMM code in the primal setting from the paper
 
 n = 3; % number of nodes/customers whatever
 p = 3; % dimension of primal variable for each node
-c = 1; % stepsize parameter of COCA (should be tuned later)
-alpha = 1; % parameter for determining transmission
-rho = 2^(-10); % sequence for determining transmission
+
 
 Adjacency = ones(n,n) - eye(n,n);
 G = graph(Adjacency);
@@ -50,7 +48,7 @@ for i=1:3
 end
 %% Implementing classic consensus ADMM algorithm of Boyd to compare things to
 
-iterations = 1000;
+iterations = 10;
 
 x_ADMM = zeros(n,p);
 l_ADMM = zeros(n,p);
@@ -85,21 +83,23 @@ end
 % we will use that here. In other examples this would be replaced with a
 % fminsearch thingy
 
+c = 0.025; % stepsize parameter of COCA (should be tuned later)
+alpha = 1; % parameter for determining transmission
+rho = 2^(-10); % sequence for determining transmission
+
 B = {};
 for i=1:n
     B{i} = (A{i}'*A{i} + 2*c*n_deg(i)*eye(p,p)); % Not using inv() since that is not as good
 end
 
-%%
-
-
 transmission = zeros(n,iterations);
 
 for k=1:iterations
+    
     for i=1:n
-        temp=x_state(:,i);
+        temp=0;
         for j=1:length(neighbors{i})
-            temp = temp - x_state(:,neighbors{i}(j));
+            temp = temp +( x_state(:,i) - x_state(:,neighbors{i}(j)) );
         end
         
         x(:,i) = B{i}\( A{i}'*y{i} - lambda(i) + c*temp );
@@ -121,15 +121,16 @@ for k=1:iterations
     end
     
     for i=1:n
-        temp2 = x_state(:,i);
+        temp2 = 0;
         for j=1:length(neighbors{i})
-            temp2 = temp2 - x_state(:,neighbors{i}(j));
+            temp2 = temp2 + ( x_state(:,i) - x_state(:,neighbors{i}(j)) );
         end
         lambda(:,i) = lambda(:,i) + c*temp2;
         %disp(lambda(:,i))
     end
 end
 
-
+% Stuff is working now, but with all the parameter tuning...
+% who knows what's going on
 
 
