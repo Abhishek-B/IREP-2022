@@ -8,7 +8,7 @@ Censored ADMM code in the primal setting from the paper
 % will need to fix all this later into a functions of sorts, for now will
 % just write down for a simple example.
 
-n = 3; % number of nodes/customers whatever
+n = 50; % number of nodes/customers whatever
 p = 3; % dimension of primal variable for each node
 
 
@@ -41,19 +41,30 @@ A = {};
 y = {};
 f = {};
 
-for i=1:3
-    A{i} = eye(p,p); %10*rand(p,p);
-    y{i} = ones(p,1); %10*rand(p,1);
+for i=1:n
+    A{i} = 10*rand(p,p); %eye(p,p); %
+    y{i} = 10*rand(p,1); %ones(p,1); %2*
     f{i} = @(x) (A{i}*x - y{i})'*(A{i}*x-y{i});
 end
+
+%%
+
+[xadmm,X,zadmm,Z,ladmm,L] = ADMM(100,n,p,2^(-2),f);
+
+res=0;
+for i=1:n
+    res = res + (A{i}*xadmm(:,i) - y{i})'*(A{i}*xadmm(:,i) - y{i});
+end
+disp(res)
+
 %% Implementing classic consensus ADMM algorithm of Boyd to compare things to
 
 iterations = 10;
 
-x_ADMM = zeros(n,p);
-l_ADMM = zeros(n,p);
+x_ADMM = zeros(p,n);
+l_ADMM = zeros(p,n);
 z_ADMM = zeros(p,1);
-rho_ADMM = 2^(-10);
+rho_ADMM = 2^(-6);
 
 C = {};
 for i=1:n
@@ -64,15 +75,14 @@ for k=1:iterations
     for i=1:n
         x_ADMM(:,i) = C{i}\( A{i}*y{i} + z_ADMM - 0.5*l_ADMM(:,i) );
     end
-end
 
-temp3 = 0;
-for i=1:n
-    temp3 = temp3+ x_ADMM(:,i) + (1/rho_ADMM)*l_ADMM(:,i);
-end
-z_ADMM = (1/n)*temp3;
 
-for k=1:iterations
+    temp3 = 0;
+    for i=1:n
+        temp3 = temp3+ x_ADMM(:,i) + (1/rho_ADMM)*l_ADMM(:,i);
+    end
+    z_ADMM = (1/n)*temp3;
+
     for i=1:n
         l_ADMM(:,i) = l_ADMM(:,i) + rho_ADMM*(x_ADMM(:,i) - z_ADMM);
     end
