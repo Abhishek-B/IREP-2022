@@ -42,14 +42,20 @@ y = {};
 f = {};
 
 for i=1:n
-    A{i} = 10*rand(p,p); %eye(p,p); %
-    y{i} = 10*rand(p,1); %ones(p,1); %2*
+    A{i} = eye(p,p); %10*rand(p,p); %
+    y{i} = rand(p,1); %ones(p,1); %
     f{i} = @(x) (A{i}*x - y{i})'*(A{i}*x-y{i});
 end
 
+avg = 0;
+for i=1:n
+    avg=avg+y{i};
+end
+avg=avg/n;
+
 %%
 
-[xadmm,X,zadmm,Z,ladmm,L] = ADMM(100,n,p,2^(-2),f);
+[xadmm,X,zadmm,Z,ladmm,L] = ADMM(10,n,p,2^(0),f);
 
 res=0;
 for i=1:n
@@ -64,7 +70,7 @@ iterations = 10;
 x_ADMM = zeros(p,n);
 l_ADMM = zeros(p,n);
 z_ADMM = zeros(p,1);
-rho_ADMM = 2^(-6);
+rho_ADMM = 1;
 
 C = {};
 for i=1:n
@@ -87,6 +93,12 @@ for k=1:iterations
         l_ADMM(:,i) = l_ADMM(:,i) + rho_ADMM*(x_ADMM(:,i) - z_ADMM);
     end
 end
+
+res2=0;
+for i=1:n
+    res2 = res2 + (A{i}*x_ADMM(:,i) - y{i})'*(A{i}*x_ADMM(:,i) - y{i});
+end
+disp(res2)
 
 %% Update step for censored ADMM
 % for this cost function the primal update has a closed form expression, so
