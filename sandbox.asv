@@ -7,25 +7,33 @@ Censored ADMM code in the primal setting from the paper
 set(0,'DefaultFigureWindowStyle','docked')
 
 %% Graph parameters setup
+% will need to fix all this later into a functions of sorts, for now will
+% just write down for a simple example.
 
 n = 10; % number of nodes/customers whatever
 p = 3; % dimension of primal variable for each node
 
-Adjacency = ones(n,n) - eye(n,n);
 
+Adjacency = ones(n,n) - eye(n,n);
+G = graph(Adjacency);
+
+edge = G.Edges;
+
+n_deg = degree(G);
+
+neighbors = {};
+for i=1:n
+    neighbors{i} = find(Adjacency(:,i));
+end
 
 %% cost function
 % working for example A of the paper, which is least squares cost function
 
-% choosing the true solution
 xtrue = rand(p,1);
 Xtrue = [];
 for i=1:n
     Xtrue = horzcat(Xtrue, xtrue);
 end
-
-% choosing the random data for each node.
-% for test, will set A to identity and y to be the true solution
 
 A = {};
 y = {};
@@ -40,18 +48,16 @@ end
 
 %% Classic ADMM Solve
 iterations = 25;
-step_size = 2^(0);
-[xadmm,X,zadmm,Z,ladmm,L] = ADMM(iterations,n,p,step_size,f);
+
+[xadmm,X,zadmm,Z,ladmm,L] = ADMM(iterations,n,p,2^(0),f);
 
 %% Censored ADMM Solve
-% Will use same iteration count as ADMM, but will vary the stepsize to see
-% changes
 
-step_size_c = 10;
-rho=0.5;
+rho=0.1;
 alpha=1;
+c=
 
-[xc,Xc, x_state,xi,transmission,lambda,Lc] = ADMM_censored(iterations,n,p,rho,alpha,step_size_c,Adjacency,f);
+[xc,Xc, x_state,xi,transmission,lambda,Lc] = ADMM_censored(iterations,n,p,rho,alpha,c,Adjacency,f);
 
 
 %% Error comparison
@@ -66,20 +72,11 @@ end
 semilogy([1:iterations],err,'k')
 grid on
 hold on
-semilogy([1:iterations],errc,'r')
+semilogy([1:iterations],err2,'r')
 
 %% Implementing classic consensus ADMM algorithm of Boyd to compare things to
 
-% G = graph(Adjacency);
-% 
-% edge = G.Edges;
-% 
-% n_deg = degree(G);
-% 
-% neighbors = {};
-% for i=1:n
-%     neighbors{i} = find(Adjacency(:,i));
-% end
+
 
 % x_ADMM = zeros(p,n);
 % l_ADMM = zeros(p,n);
