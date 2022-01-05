@@ -39,7 +39,7 @@ for k=1:iteration
         % states
         temp=0;
         for j=1:length(neighbors{i})
-            temp = temp +( x_state(:,i) - x_state(:,neighbors{i}(j)) );
+            temp = temp +( x_state(:,i) + x_state(:,neighbors{i}(j)) );
         end
         
         % the overall cost function for the primal update
@@ -50,12 +50,15 @@ for k=1:iteration
         
         % Computing the difference between current state and primal update
         xi(:,i) = x_state(:,i) - x(:,i); 
-        
+        %disp(xi(:,i)')
         % Transmission loop
         if ( norm(xi(:,i))^2 - alpha*(rho^k) )>=0
             %disp(norm(xi(:,i))^2 - alpha*(rho^k))
+            %disp("true")
             x_state(:,i) = x(:,i);
             transmission(i,k) = 1;
+        else
+            %disp("false")
         end
     end
     

@@ -39,7 +39,7 @@ end
 
 
 %% Classic ADMM Solve
-iterations = 25;
+iterations = 250;
 step_size = 2^(0);
 [xadmm,X,zadmm,Z,ladmm,L] = ADMM(iterations,n,p,step_size,f);
 
@@ -47,9 +47,9 @@ step_size = 2^(0);
 % Will use same iteration count as ADMM, but will vary the stepsize to see
 % changes
 
-step_size_c = 10;
+step_size_c = 0.35;
 rho=0.5;
-alpha=1;
+alpha=0; % with alpha=0 this should reduce to simple decentralized admm which should converge...
 
 [xc,Xc, x_state,xi,transmission,lambda,Lc] = ADMM_censored(iterations,n,p,rho,alpha,step_size_c,Adjacency,f);
 
@@ -58,28 +58,21 @@ alpha=1;
 
 err=[];
 errc = [];
+err_iter=[];
 for i=1:iterations
     err = [err, ( norm(X{i}-Xtrue,'fro')^2 / norm(Xtrue,'fro')^2 )];
     errc = [errc, ( norm(Xc{i}-Xtrue,'fro')^2 / norm(Xtrue,'fro')^2 )];
+%     err_iter = [err_iter, ( norm(x_iter{i}-Xtrue,'fro')^2 / norm(Xtrue,'fro')^2 )];
 end
 
 semilogy([1:iterations],err,'k')
 grid on
 hold on
 semilogy([1:iterations],errc,'r')
+% hold on
+% semilogy([1:iterations],err_iter,'bx')
 
 %% Implementing classic consensus ADMM algorithm of Boyd to compare things to
-
-% G = graph(Adjacency);
-% 
-% edge = G.Edges;
-% 
-% n_deg = degree(G);
-% 
-% neighbors = {};
-% for i=1:n
-%     neighbors{i} = find(Adjacency(:,i));
-% end
 
 % x_ADMM = zeros(p,n);
 % l_ADMM = zeros(p,n);
@@ -114,6 +107,17 @@ semilogy([1:iterations],errc,'r')
 % we will use that here. In other examples this would be replaced with a
 % fminsearch thingy
 
+% G = graph(Adjacency);
+% 
+% edge = G.Edges;
+% 
+% n_deg = degree(G);
+% 
+% neighbors = {};
+% for i=1:n
+%     neighbors{i} = find(Adjacency(:,i));
+% end
+% 
 % c = 20; % stepsize parameter of COCA (should be tuned later)
 % alpha = 0.1; % parameter for determining transmission
 % rho = 2^(-10); % sequence for determining transmission
@@ -121,6 +125,8 @@ semilogy([1:iterations],errc,'r')
 % x = zeros(p,n); % primal value for each customer
 % x_state = zeros(p,n); % state value for each customer, the neighbors states
 %                       % can be found from different columns of this.
+%                       
+% x_iter={};
 % 
 % xi = zeros(p,n); % the difference between primal value and state value
 % lambda = zeros(p,n); % dual variabels for each customer
@@ -146,7 +152,7 @@ semilogy([1:iterations],errc,'r')
 %         xi(:,i) = x_state(:,i) - x(:,i); 
 %         
 %         if ( norm(xi(:,i))^2 - alpha*(rho^k) )>=0
-%             disp(norm(xi(:,i))^2 - alpha*(rho^k))
+%             %disp(norm(xi(:,i))^2 - alpha*(rho^k))
 %             %disp("updating transmission")
 %             x_state(:,i) = x(:,i);
 %             transmission(i,k) = 1;
@@ -163,6 +169,8 @@ semilogy([1:iterations],errc,'r')
 %         lambda(:,i) = lambda(:,i) + c*temp2;
 %         %disp(lambda(:,i))
 %     end
+%     
+%     x_iter{k} = x;
 % end
 
 % Stuff is working now, but with all the parameter tuning...
