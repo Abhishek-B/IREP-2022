@@ -49,7 +49,7 @@ step_size = 2^(0);
 
 step_size_c = 0.35;
 rho=0.5;
-alpha=0; % with alpha=0 this should reduce to simple decentralized admm which should converge...
+alpha=0.1; % with alpha=0 this should reduce to simple decentralized admm which should converge...
 
 [xc,Xc, x_state,xi,transmission,lambda,Lc] = ADMM_censored(iterations,n,p,rho,alpha,step_size_c,Adjacency,f);
 
