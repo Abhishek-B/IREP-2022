@@ -153,31 +153,16 @@ dict("612") = Z_601;
 
 % building R/X
 
-R = zeros(29,29);
-X = zeros(29,29);
-omega = exp(-2*pi*1i/3);
+R = zeros()
 
 for i=1:length(index) %row entry
     for j=1:length(index) %col entry
         
-        row = index{i};
-        col = index{j};
         
-        edgei = E{row(1)};
-        edgej = E{col(1)};
         
-        common_edges = intersect(edgei, edgej);
         
-        Impedence_sum = zeros(3,3);
-        for k=1:length(common_edges)
-            Impedence_sum = Impedence_sum + dict(common_edges(k));
-        end
         
-        entry = Impedence_sum(row(2),col(2));
-        coeff = omega^(row(2)-col(2));
         
-        R(i,j) = 2*real(entry*coeff);
-        X(i,j) = -2*imag(entry*coeff);
     end
 end
 
