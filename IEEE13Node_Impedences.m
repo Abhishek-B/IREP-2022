@@ -5,8 +5,8 @@ January 2022 - Abhishek B.
 
 %% imperial to metric unit conversion
 
-% miles to KM
-mi2km = 1.609344;
+% miles to feet
+mi2ft = 1/5280;
 
 %% Config 601
 
@@ -18,7 +18,7 @@ X_601 = [1.0179, 0.5017, 0.4236;
      0.5017, 1.0478, 0.3849;
      0.4236, 0.3849, 1.0348];
 
-Z_601 = (R_601+1i*X_601);
+Z_601 = (R_601+1i*X_601)*mi2ft;
 
 %% Config 602
 
@@ -30,7 +30,7 @@ X_602 = [1.1814, 0.4236, 0.5017;
          0.4236, 1.1983, 0.3849;
          0.5017, 0.3849, 1.2112];
 
-Z_602 = (R_602+1i*X_602);
+Z_602 = (R_602+1i*X_602)*mi2ft;
 
 %% Config 603
 
@@ -42,7 +42,7 @@ X_603 = [0, 0, 0;
          0, 1.3471, 0.4591;
          0, 0.4591, 1.3569];
 
-Z_603 = (R_603+1i*X_603);
+Z_603 = (R_603+1i*X_603)*mi2ft;
 
 %% Config 604
 
@@ -54,7 +54,7 @@ X_604 = [1.3569, 0, 0.4591;
          0, 0, 0;
          0.4591, 0, 1.3471];
      
-Z_604 = (R_604+1i*X_604);
+Z_604 = (R_604+1i*X_604)*mi2ft;
 
 %% Config 605
 
@@ -66,7 +66,7 @@ X_605 = [0, 0, 0;
          0, 0, 0;
          0, 0, 1.3475];
      
-Z_605 = (R_605+1i*X_605);
+Z_605 = (R_605+1i*X_605)*mi2ft;
 
 %% Config 606
 
@@ -78,7 +78,7 @@ X_606 = [0.4463, 0.0328, -0.0143;
          0.0328, 0.4041, 0.0328;
          -0.0143, 0.0328, 0.4463];
      
-Z_606 = (R_606+1i*X_606);
+Z_606 = (R_606+1i*X_606)*mi2ft;
 
 %% Config 607
 
@@ -90,7 +90,7 @@ X_607 = [0.5124, 0, 0;
          0, 0, 0;
          0, 0, 0];
      
-Z_607 = (R_607+1i*X_607);
+Z_607 = (R_607+1i*X_607)*mi2ft;
 
 %% Matrix R/X for example
 % These are 29x29 matrices...but automating the task might take longer than
@@ -137,18 +137,24 @@ Swtch=Z_606; % same as edge 7-8
 
 dict = containers.Map();
 
-dict("01") = Z_601;
-dict("12") = Z_602;
-dict("23") = transformer;
-dict("14") = Z_603;
-dict("45") = Z_603;
-dict("16") = Z_601;
-dict("67") = Swtch;
-dict("78") = Z_606;
-dict("69") = Z_604;
-dict("910") = Z_605;
-dict("911") = Z_607;
-dict("612") = Z_601;
+% Here I multiply the impedence given with the length of the particular
+% line also give. This seems important since some lines have different
+% length, but same config for impedence.
+
+dict("01") = Z_601*2000;
+dict("12") = Z_602*500;
+dict("23") = transformer*500; % note IEEE has this lenght as 0, but they
+                              % also have it as a transformer
+dict("14") = Z_603*500;
+dict("45") = Z_603*300;
+dict("16") = Z_601*2000;
+dict("67") = Swtch*500; % note IEEE has this lenght as 0, but they
+                        % also have it as a switch
+dict("78") = Z_606*500;
+dict("69") = Z_604*300;
+dict("910") = Z_605*300;
+dict("911") = Z_607*800;
+dict("612") = Z_601*1000;
 
 
 % building R/X
@@ -181,20 +187,6 @@ for i=1:length(index) %row entry
     end
 end
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+% Saving the matrices
+save('RX.mat', 'R', 'X');

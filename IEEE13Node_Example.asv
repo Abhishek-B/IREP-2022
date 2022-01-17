@@ -112,8 +112,5 @@ Xi = {};
 for i=1:N
     Gamma{i} = [ D_stack{i} ;
                 -D_stack{i} ];
-    Xi{i} = [ E_stack{i} ;
-             -E_stack{i} ];
-end
-
+    Xi{i} =         
 
