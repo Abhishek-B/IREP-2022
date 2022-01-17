@@ -1,4 +1,4 @@
-function [y] = Indicator_n(p,q,s,w, s_bar,mu_u,mu_l, a,d, p_u,p_l, alpha_u,alpha_l,e)
+function [y] = Indicator_n(p,q,s,w,Psi, s_bar,mu_u,mu_l, a,d, p_u,p_l, alpha_u,alpha_l,e)
 %Indicator function for the battery constraints
 
 % the constants alpha_u,alpha_l,e can be computed 
@@ -8,6 +8,7 @@ if ~size(p,1)==size(q,1)
     error("sizes don't match for p and q")
 end
 
+N = size(p,2);
 T = size(p,1);
 
 I = eye(T,T);
@@ -79,6 +80,21 @@ for i=1:size(s,1)
         return;
     end
 end
+
+%% Checking feasibility of equality constraint
+temp = zeros(size(w,1),1);
+for i=1:N
+    temp = temp + Psi{i}*[p(:,i);q(:,i);s(:,i)];
+end
+
+for i=1:size(w,1)
+    if ~(temp(i)==w(i))
+        y=Inf;
+        return
+    end
+end
+
+
 
 %% 
 % At this point all feasibility conditions should have been met, so we can

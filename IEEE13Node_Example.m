@@ -13,6 +13,7 @@ K = 29;
 % power profile vectors (empty for now)
 p = zeros(T,N);
 q = zeros(T,N);
+s = zeros(2*K*T, N);
 
 % Stacking design parameters into row vectors, each elements corresponds to
 % customer i
@@ -116,4 +117,58 @@ for i=1:N
              -E_stack{i} ];
 end
 
+Psi = {};
+for i=1:N
+    Psi{i} = [Gamma{i}, Xi{i}, eye(2*K*T)];
+end
+
+% baseline voltage
+% I'm gonna set this up myself by choosing random values. The dataset from
+% ausgrid doesn't seem to have the link up anymore, and i wouldn't know how
+% to convert nodal voltage data to the p.u. system. 
+
+
+% these have 49 values and not 48...so maybe the time steps are 49=T
+x = [   1,    4,     5, 8,   11,    16,   17,    20,   23,   32,    34,    37,   40, 42,   45, 48];
+xq = [1:1:48];
+v = [1.04, 1.01, 1.023, 1, 0.95, 0.955, 0.96, 0.974, 0.98, 0.98, 0.976, 0.974, 0.97,  1, 1.01,  1];
+
+v_temp = interp1(x,v,xq);
+
+% figure()
+% plot(xq, v_temp, 'r-o')
+% ylim([0.9,1.1])
+
+V_baseline = zeros(K,T);
+
+for j=1:T
+    for i=1:K
+        V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
+    end
+end
+
+% figure()
+% for i=1:29
+%     plot(xq, V_baseline(i,:), 'k-o')
+%     ylim([0.9,1.1])
+%     hold on
+%     grid on
+%     set(gca,'ytick',[0.0:0.01:1.1])
+% end
+% plot(xq, 1.046*ones(1,48), 'r-')
+% plot(xq, 0.954*ones(1,48), 'r-')
+
+% The plot seem okay-ish for these baseline voltages. Eyeballing it, they
+% seem roughly similar to Nanduni's plot, so I'll go with this.
+
+V_base = [];
+for i=1:T
+    V_base = [V_base; V_baseline(:,i)];
+end
+
+v_upper = 1.046*ones(K*T,1);
+v_lower = 0.954*ones(K*T,1);
+
+w = [v_upper - V_base;
+     -v_lower - V_base];
 
