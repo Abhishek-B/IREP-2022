@@ -156,12 +156,6 @@ for i=1:32
     p8b = p8b + (custiday217.GC*2 - custiday217.GG*2);
 end
 q8b = (1/cos(theta8b))*p8b;
-figure()
-plot(p8b)
-hold on
-plot(q8b)
-grid on
-legend('p','q')
 
 %% Node 8c
 
@@ -194,12 +188,12 @@ for i=1:73
 end
 q10c = (1/cos(theta10c))*p10c;
 
-figure()
-plot(p10c)
-hold on
-plot(q10c)
-grid on
-legend('p','q')
+% figure()
+% plot(p10c)
+% hold on
+% plot(q10c)
+% grid on
+% legend('p','q')
 
 %% Node 11a
 
@@ -243,4 +237,6 @@ V = v0 - R*P - X*Q;
 
 V_base = (1/4.16)*V;
 
+% Saving the base load
+save('baseload.mat', 'V_base');
 
