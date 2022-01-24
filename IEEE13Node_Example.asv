@@ -150,7 +150,7 @@ end
 
 costs={};
 for i=1:N
-    costs{i} = @(u) Omega_n(u, T, eta, kappa); % + Indicator_n(u, T, w, s_bar(i), mu_u, mu_l, a(i), d(i), p_u, p_l, alpha_u(i), alpha_l(i), e(i));
+    costs{i} = @(u) Omega_n(u, T, eta, kappa) + Indicator_n(u, T, w, s_bar(i), mu_u, mu_l, a(i), d(i), p_u, p_l, alpha_u(i), alpha_l(i), e(i));
 end
 
 %% ADMM
