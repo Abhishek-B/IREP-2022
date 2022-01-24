@@ -2,7 +2,7 @@
 Testing the IEEE 13 node feeder.
 Jan 2022 - Abhishek B.
 %}
-
+set(0,'DefaultFigureWindowStyle','docked')
 %% REES model parameters and such
 
 % Customers, time steps, supply point numbers
@@ -132,12 +132,11 @@ v_lower = 0.954*ones(K*T,1);
 w = [v_upper - V_base;
      -v_lower - V_base];
 
- 
+%% Comms network
 
- 
-%% Running the Algorithm
-
-
+%% Graph parameters setup
+% Comms network
+Adjacency = ones(N,N) - eye(N,N);
 
 
 
