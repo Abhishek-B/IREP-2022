@@ -41,8 +41,11 @@ for i=1:N
 end
 p_u = 6.6;  % max charge rate
 p_l = -6.6; % min charge rate
-mu_u = 0.9; % charge efficiency
-mu_l = 1.1; % discharge efficiency
+
+% One of the places where these get used, Nanduni has missed, so I will set
+% both to 1, to see if Yalmip will work.
+mu_u = 1; %0.9; % charge efficiency
+mu_l = 1; %1.1; % discharge efficiency
 
 
 % variables defined for linear systems
@@ -178,6 +181,9 @@ lambda = zeros(2*K*T,N);       % primal value for each customer
 lambda_state = zeros(2*K*T,N); % state value for each customer, the neighbors states
                       % can be found from different columns of this.
 
+c_stepsize = 1;
+alpha = 0.5;
+rho=0.5;
 lambda_step = {}; % cell to hold each iteration value of the primal
 nu_step = {}; % cell to hold each iteration value of the dual
 
@@ -189,7 +195,10 @@ transmission = zeros(N,iteration);
 for k=1:iteration
     
     % looping over customers
-    for i=1:1
+    for i=1:N
+        
+        disp([k, i])
+        
         % Building the sum of difference between self state and neighbors
         % states
         temp=0;
@@ -225,14 +234,14 @@ for k=1:iteration
         %% Constraints building other stuff
         
         % Building vector mu, of charge efficiencies
-        mu = zeros(T,1);
-        for j=1:T
-            if p(j)>=0
-                mu(j)=mu_u;
-            else
-                mu(j)=mu_l;
-            end
-        end
+        mu = ones(T,1); %zeros(T,1)
+%         for j=1:T
+%             if p(j)>=0
+%                 mu(j)=mu_u;
+%             else
+%                 mu(j)=mu_l;
+%             end
+%         end
 
         % Building matrix M which bounds charge rates
         M = zeros(T,T);
@@ -270,15 +279,15 @@ for k=1:iteration
         %% Updating u_n with optimize and Mosek
         
         obj = eta'*p + kappa*p'*p;
-        
-        optimize(constraints, obj);
+        opt = sdpsettings('verbose',0);
+        optimize(constraints, obj, opt);
         u = value(x);
         
         
         %% Updating lambda
         
         
-        lambda(:,i) = (1/(2*c*n_deg(i)))*( Psi{i}*u - (1/N)*w - nu(:,i) + c*temp );
+        lambda(:,i) = (1/(2*c_stepsize*n_deg(i)))*( Psi{i}*u - (1/N)*w - nu(:,i) + c_stepsize*temp );
         
 %         
 %         % the overall cost function for the primal update
@@ -312,7 +321,7 @@ for k=1:iteration
     end
     
     %% Dual variable update
-    for i=1:n
+    for i=1:N
         
         % building the sum of the differences between self state and
         % neighbors current states
@@ -322,7 +331,7 @@ for k=1:iteration
         end
         
         % Updating the dual variable
-        nu(:,i) = nu(:,i) + c*temp2;
+        nu(:,i) = nu(:,i) + c_stepsize*temp2;
     end
     
     %% Storing the primal and dual updates for the iteration
