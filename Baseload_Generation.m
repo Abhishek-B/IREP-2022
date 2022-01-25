@@ -235,7 +235,7 @@ load('RX.mat')
 
 V = v0 - R*P - X*Q;
 
-V_base = (1/4.16)*V(:); %reshaping to stack all times on top of each other
+V_base = (1/4.16)*V; 
 
 % Saving the base load
 save('baseload.mat', 'V_base');
