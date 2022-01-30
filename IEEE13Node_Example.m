@@ -14,17 +14,18 @@ K = 29;
 
 % power profile vectors (empty for now)
 % maybe I dont need these here...eh whatever, I'll come back to it
-p = zeros(T,N);
-q = zeros(T,N);
-s = zeros(2*K*T, N);
-u = [p;q;s];
+% p = zeros(T,N);
+% q = zeros(T,N);
+% s = zeros(2*K*T, N);
+% u = [p;q;s];
 
 % Stacking design parameters into row vectors, each elements corresponds to
 % customer i
 % setting to zero for now, will fill in soon
 
-a = randi([10,14],1,N); % arrival time 5pm-7pm
-d = randi([38,42],1,N); % departure time 7am-9am
+% Changing these to simplest possible scenario.
+a = 0; %randi([10,14],1,N); % arrival time 5pm-7pm
+d = T; %randi([38,42],1,N); % departure time 7am-9am
 
 capacities = [42,21,24,20,30,16,23,16.5,28,60,90,75];
 b = zeros(1,N); 
@@ -98,8 +99,8 @@ theta(21, 15) = 1;
 theta(22, 16) = 1;
 theta(23, 17) = 1;
 theta(24, 18) = 1;
-theta(25, 19) = 1; % Supply point 10 which has 27 customers
-theta(26, 20) = 1; % Supply point 11 which has 27 customers
+theta(25, 19) = 1; 
+theta(26, 20) = 1; 
 theta(27, 21) = 1;
 theta(28, 22) = 1;
 theta(29, 23) = 1;
@@ -172,66 +173,66 @@ end
 
 %% Old remnant code for baseline voltages
  
-% % baseline voltage
-% % I'm gonna set this up myself by choosing random values. The dataset from
-% % ausgrid doesn't seem to have the link up anymore, and i wouldn't know how
-% % to convert nodal voltage data to the p.u. system. 
-% 
-% 
-% % these have 49 values and not 48...so maybe the time steps are 49=T
-% x = [   1,    4,     5, 8,   11,    16,   17,    20,   23,   32,    34,    37,   40, 42,   45, 48];
-% xq = [1:1:48];
-% v = [1.04, 1.01, 1.023, 1, 0.95, 0.955, 0.96, 0.974, 0.98, 0.98, 0.976, 0.974, 0.97,  1, 1.01,  1];
-% 
-% v_temp = interp1(x,v,xq);
-% 
-% % figure()
-% % plot(xq, v_temp, 'r-o')
-% % ylim([0.9,1.1])
-% 
-% V_baseline = zeros(K,T);
-% 
-% for j=1:T
-%     for i=1:K
-%         V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
-%     end
+% baseline voltage
+% I'm gonna set this up myself by choosing random values. The dataset from
+% ausgrid doesn't seem to have the link up anymore, and i wouldn't know how
+% to convert nodal voltage data to the p.u. system. 
+
+
+% these have 49 values and not 48...so maybe the time steps are 49=T
+x = [   1,    4,     5, 8,   11,    16,   17,    20,   23,   32,    34,    37,   40, 42,   45, 48];
+xq = [1:1:48];
+v = [1.04, 1.01, 1.023, 1, 0.95, 0.955, 0.96, 0.974, 0.98, 0.98, 0.976, 0.974, 0.97,  1, 1.01,  1];
+
+v_temp = interp1(x,v,xq);
+
+% figure()
+% plot(xq, v_temp, 'r-o')
+% ylim([0.9,1.1])
+
+V_baseline = zeros(K,T);
+
+for j=1:T
+    for i=1:K
+        V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
+    end
+end
+
+% figure()
+% for i=1:29
+%     plot(xq, V_baseline(i,:), 'k-o')
+%     ylim([0.9,1.1])
+%     hold on
+%     grid on
+%     set(gca,'ytick',[0.0:0.01:1.1])
 % end
-% 
-% % figure()
-% % for i=1:29
-% %     plot(xq, V_baseline(i,:), 'k-o')
-% %     ylim([0.9,1.1])
-% %     hold on
-% %     grid on
-% %     set(gca,'ytick',[0.0:0.01:1.1])
-% % end
-% % plot(xq, 1.046*ones(1,48), 'r-')
-% % plot(xq, 0.954*ones(1,48), 'r-')
-% 
-% % The plot seem okay-ish for these baseline voltages. Eyeballing it, they
-% % seem roughly similar to Nanduni's plot, so I'll go with this.
-% 
+% plot(xq, 1.046*ones(1,48), 'r-')
+% plot(xq, 0.954*ones(1,48), 'r-')
+
+% The plot seem okay-ish for these baseline voltages. Eyeballing it, they
+% seem roughly similar to Nanduni's plot, so I'll go with this.
+
 % V_base = [];
 % for i=1:T
 %     V_base = [V_base, V_baseline(:,i)];
 % end
-% 
-% v_upper = 1.046*ones(K*T,1);
-% v_lower = 0.954*ones(K*T,1);
-% 
-% w = [v_upper - V_base(:);
-%      -v_lower - V_base(:)];
-%% Baseline voltages and vec w
-
-load('baseload.mat');
 
 v_upper = 1.046*ones(K*T,1);
 v_lower = 0.954*ones(K*T,1);
 
-V_base_stacked = V_base(:);
-
-w = [v_upper - V_base_stacked;
-     -v_lower - V_base_stacked];
+w = [v_upper - V_baseline(:);
+     -v_lower - V_baseline(:)];
+%% Baseline voltages and vec w
+% 
+% load('baseload.mat');
+% 
+% v_upper = 1.046*ones(K*T,1);
+% v_lower = 0.954*ones(K*T,1);
+% 
+% V_base_stacked = V_base(:);
+% 
+% w = [v_upper - V_base_stacked;
+%      -v_lower - V_base_stacked];
 
 %% Comms network
 
@@ -258,14 +259,14 @@ end
 
 %% ADMM
 
-iteration = 5;
+iteration = 200;
 lambda = zeros(2*K*T,N);       % primal value for each customer
 lambda_state = zeros(2*K*T,N); % state value for each customer, the neighbors states
                       % can be found from different columns of this.
 
 c_stepsize = 1;
-alpha = 0.5;
-rho=0.5;
+alpha = 0;
+rho=0;
 lambda_step = {}; % cell to hold each iteration value of the primal
 nu_step = {}; % cell to hold each iteration value of the dual
 
@@ -311,10 +312,15 @@ for k=1:iteration
         constraints = [];
         %inv_cap = s_bar(i)^2;
         for j=1:T
-            constraints = [constraints, p(j)^2+q(j)^2<= s_bar]; %inv_cap];
+            constraints = [constraints, p(j)^2+q(j)^2 <= s_bar]; %inv_cap];
         end
         
         %% Constraints building other stuff
+        
+        I = eye(T,T);
+        O = ones(T,1);
+        Z = zeros(T,1);
+        
         
         % Building vector mu, of charge efficiencies
         mu = ones(T,1); %zeros(T,1)
@@ -337,33 +343,39 @@ for k=1:iteration
                 end
             end
         end
+        
+        constraints = [constraints, M*p <= alpha_u(i)*O, alpha_l(i)*O <= M*p];
+        
+        constraints = [constraints, p_l*O <= p, p<= p_u*O];
+        
+        constraints = [constraints, O'*p == e(i)];
+        
+        % this part is not needed when I set a=0, d=T.
+%         % Building availibility matrix L
+%         L = zeros(T,T);
+%         for j=1:T
+%             for l=1:T
+%                 if (j==l)&&(a(i)<j)&&(j<=d(i))
+%                     L(j,l)=1;
+%                 end
+%             end
+%         end
+        
 
-        % Building availibility matrix L
-        L = zeros(T,T);
-        for j=1:T
-            for l=1:T
-                if (j==l)&&(a(i)<j<=d(i))
-                    L(j,l)=1;
-                end
-            end
-        end
-        
-        I = eye(T,T);
-        O = ones(T,1);
-        Z = zeros(T,1);
-        
-        F = [I ; -I ; M ; -M ; mu' ; -mu' ; (I-L) ; (L-I)];
-        f = [p_l*O ; -p_u*O ; alpha_l(i)*O ; -alpha_u(i)*O ; e(i) ; -e(i) ; Z ; Z];
+%         F = [I ; -I ; M ; -M ; mu' ; -mu' ; (I-L) ; (L-I)];
+%         f = [p_l*O ; -p_u*O ; alpha_l(i)*O ; -alpha_u(i)*O ; e(i) ; -e(i) ; Z ; Z];
          
         %% Constraints - final constraint for feasibility set
+        % Final feasibility set constraint for (p,q), and then also for the
+        % slack variable 0<=s<=w
+%         constraints = [constraints, f<=F*p, zeros(length(s),1)<=s, s<=w];
         
-        constraints = [constraints, F*p>=f];
-        
+        constraints = [constraints, zeros(length(s),1) <= s]; %, s<=w];
         %% Updating u_n with optimize and Mosek
         
         obj = eta'*p + kappa*p'*p;
         opt = sdpsettings('verbose',0);
-        optimize(constraints, obj, opt);
+        optimize(constraints, [], opt);
         u = value(x);
         U(:,i) = u;
         
@@ -376,14 +388,6 @@ for k=1:iteration
 %         
 %         % the overall cost function for the primal update
 %         fun = @(x)costs{i}(x) + x'*(lambda(:,i) - c*temp) + c*n_deg(i)*norm(x)^2;
-%         
-%         
-%         
-%         
-%         
-%         
-%         
-%         
 %         %%
 %         % updating the primal through a subminimization
 %         lambda(:,i) = fminsearch(fun, zeros(p,1));
@@ -423,8 +427,6 @@ for k=1:iteration
     nu_step{k} = nu;
 end
 
-
-
 %% Reconstruct Voltages from solutions
 
 V_soln = zeros(K*T,1);
@@ -434,7 +436,7 @@ for i=1:N
     temp = temp + D_stack{i}*U(1:T, i) + E_stack{i}*U(T+1:2*T, i);
 end
 
-V_soln = V_base(:) + temp;
+V_soln = V_baseline(:) + temp;
 
 V_soln_reshaped = reshape(V_soln, [K,T]);
 
@@ -449,8 +451,26 @@ V_soln_reshaped = reshape(V_soln, [K,T]);
 % end
 
 %% Plots
+
+% figure()
+% for i=1:29
+%     plot(xq, V_baseline(i,:), 'k-o')
+%     ylim([0.9,1.1])
+%     hold on
+%     grid on
+%     set(gca,'ytick',[0.0:0.01:1.1])
+% end
+% plot(xq, 1.046*ones(1,48), 'r-')
+% plot(xq, 0.954*ones(1,48), 'r-')
 figure()
-plot(V_base(1,:), 'r')
-hold on
-plot(V_soln_reshaped(1,:), 'g')
-grid on
+for i=1:K
+    plot(V_baseline(i,:), 'ro--')
+    ylim([0.9,1.1])
+    hold on
+    grid on
+    set(gca,'ytick',[0.0:0.01:1.1])
+    hold on
+    plot(V_soln_reshaped(i,:), 'go-')
+end
+plot(1.046*ones(1,48), 'k-')
+plot(0.954*ones(1,48), 'k-')
