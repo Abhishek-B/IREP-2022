@@ -258,13 +258,13 @@ end
 % nah I dont think I do
 
 %% ADMM
-
+tic;
 iteration = 20;
 lambda = zeros(2*K*T,N);       % primal value for each customer
 lambda_state = zeros(2*K*T,N); % state value for each customer, the neighbors states
                       % can be found from different columns of this.
 
-c_stepsize = 0.05;
+c_stepsize = 0.005;
 alpha = 0;
 rho=0;
 lambda_step = {}; % cell to hold each iteration value of the primal
@@ -422,6 +422,7 @@ for k=1:iteration
     nu_step{k} = nu;
 end
 
+time_taken=toc;
 %% Reconstruct Voltages from solutions
 
 V_soln = zeros(K*T,1);
