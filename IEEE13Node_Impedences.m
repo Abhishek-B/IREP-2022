@@ -182,8 +182,8 @@ for i=1:length(index) %row entry
         entry = Impedence_sum(row(2),col(2));
         coeff = omega^(row(2)-col(2));
         
-        R(i,j) = 2*real(entry*coeff);
-        X(i,j) = -2*imag(entry*coeff);
+        R(i,j) = 2*real(conj(entry)*coeff);
+        X(i,j) = -2*imag(conj(entry)*coeff);
     end
 end
 

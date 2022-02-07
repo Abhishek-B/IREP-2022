@@ -192,11 +192,11 @@ v_temp = interp1(x,v,xq);
 
 V_baseline = zeros(K,T);
 
-for j=1:T
-    for i=1:K
-        V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
-    end
-end
+% for j=1:T
+%     for i=1:K
+%         V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
+%     end
+% end
 
 % figure()
 % for i=1:29
@@ -221,7 +221,7 @@ v_upper = 1.046*ones(K*T,1);
 v_lower = 0.954*ones(K*T,1);
 
 w = [v_upper - V_baseline(:);
-     -v_lower - V_baseline(:)];
+     -v_lower + V_baseline(:)];
 %% Baseline voltages and vec w
 % 
 % load('baseload.mat');
@@ -232,7 +232,7 @@ w = [v_upper - V_baseline(:);
 % V_base_stacked = V_base(:);
 % 
 % w = [v_upper - V_base_stacked;
-%      -v_lower - V_base_stacked];
+%      -v_lower + V_base_stacked];
 
 %% Comms network
 
@@ -259,12 +259,12 @@ end
 
 %% ADMM
 tic;
-iteration = 20;
+iteration = 10;
 lambda = zeros(2*K*T,N);       % primal value for each customer
 lambda_state = zeros(2*K*T,N); % state value for each customer, the neighbors states
                       % can be found from different columns of this.
 
-c_stepsize = 0.005;
+c_stepsize = 0.0002;
 alpha = 0;
 rho=0;
 lambda_step = {}; % cell to hold each iteration value of the primal
@@ -309,7 +309,7 @@ for k=1:iteration
         
 %         disp([k, i])
         
-        % Building the sum of difference between self state and neighbors
+        % Building the sum of self state and neighbors
         % states
         temp=0;
         for j=1:length(neighbors{i})
