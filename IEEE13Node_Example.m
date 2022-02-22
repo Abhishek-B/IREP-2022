@@ -198,6 +198,10 @@ for j=1:T
     end
 end
 
+V_baseline = V_baseline.^2;
+v_upper = (1.05*ones(K*T,1)).^2 ;
+v_lower = (0.95*ones(K*T,1)).^2 ;
+
 % figure()
 % for i=1:29
 %     plot(xq, V_baseline(i,:), 'k-o')
@@ -217,8 +221,7 @@ end
 %     V_base = [V_base, V_baseline(:,i)];
 % end
 
-v_upper = 1.046*ones(K*T,1);
-v_lower = 0.954*ones(K*T,1);
+
 
 w = [v_upper - V_baseline(:);
      -v_lower + V_baseline(:)];
@@ -432,7 +435,7 @@ for i=1:N
     temp = temp + D_stack{i}*U(1:T, i) + E_stack{i}*U(T+1:2*T, i);
 end
 
-V_soln = sqrt(V_baseline(:) + temp);
+V_soln = V_baseline(:) + temp;
 
 V_soln_reshaped = reshape(V_soln, [K,T]);
 
@@ -460,13 +463,11 @@ V_soln_reshaped = reshape(V_soln, [K,T]);
 % plot(xq, 0.954*ones(1,48), 'r-')
 figure()
 for i=1:K
-    plot(V_baseline(i,:), 'ro--')
-    ylim([0.9,1.1])
+    plot(sqrt(V_baseline(i,:)), 'ro--')
     hold on
     grid on
-    set(gca,'ytick',[0.0:0.01:1.1])
     hold on
-    plot(V_soln_reshaped(i,:), 'go-')
+    plot(sqrt(V_soln_reshaped(i,:)), 'go-')
 end
-plot(1.046*ones(1,48), 'k-')
-plot(0.954*ones(1,48), 'k-')
+plot(1.05*ones(T,1), 'k-')
+plot(0.95*ones(T,1), 'k-')

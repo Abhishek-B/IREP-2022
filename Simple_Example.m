@@ -6,9 +6,9 @@ set(0,'DefaultFigureWindowStyle','docked')
 %% REES model parameters and such
 
 % Customers, time steps, supply point numbers
-N = 2; 
-T = 4;
-K = 1;
+N = 4; 
+T = 48;
+K = 2;
 
 
 % Customer Parameters
@@ -54,12 +54,34 @@ kappa = 5e-4; %zeros(1,N);
 
 %% Unbalanced dist grid model
 
-theta = [1,1];
+theta = [1,1,0,0;
+         0,0,1,1];
 
 % R X matrices
 
-R = 2*0.33;
-X = -2*0.33;
+% For single phase these were used. R = 2*0.33; % X = -2*0.33;
+
+
+% miles to feet
+mi2ft = 1/5280;
+% Config 603 from ieee 13 node feeder
+R_603 = [1.3294, 0.2066;
+         0.2066, 1.3238];
+X_603 = [1.3471, 0.4591;
+         0.4591, 1.3569];
+Z_603 = (R_603+1i*X_603)*mi2ft*500;      % 500 feet line segment
+
+R = zeros(K,K);
+X = zeros(K,K);
+omega = exp(-2*pi*1i/3);
+
+for i=1:K
+    for j=1:K
+        R(i,j) = 2*real( conj(Z_603(i,j))*(omega^(i-j))  );
+        X(i,j) = -2*imag( conj(Z_603(i,j))*(omega^(i-j))  );
+    end
+end
+
 
 % matrices D and E
 D = -R*theta;
@@ -103,7 +125,15 @@ end
 %% Old remnant code for baseline voltages
  
 
-v_temp = [1.06, 0.95, 1, 0.94]; 
+% v_temp = [1.06, 0.95, 1, 0.94]; 
+% these have 49 values and not 48...so maybe the time steps are 49=T
+x = [   1,    4,     5, 8,   11,    16,   17,    20,   23,   32,    34,    37,   40, 42,   45, 48];
+xq = [1:1:48];
+v = [1.04, 1.01, 1.023, 1, 0.95, 0.955, 0.96, 0.974, 0.98, 0.98, 0.976, 0.974, 0.97,  1, 1.01,  1];
+
+v_temp = interp1(x,v,xq);
+
+
 V_baseline = zeros(K,T);
 for j=1:T
     for i=1:K
@@ -111,19 +141,19 @@ for j=1:T
     end
 end
 
-disp(V_baseline)
+% disp(V_baseline)
 V_baseline = V_baseline.^2;
 v_upper = (1.05*ones(K*T,1)).^2 ;
 v_lower = (0.95*ones(K*T,1)).^2 ;
 
-figure()
-for i=1:K
-    plot(sqrt(V_baseline(i,:)), 'k-o')
-    hold on
-    grid on
-    plot(sqrt(v_upper), 'r-')
-    plot(sqrt(v_lower), 'r-')
-end
+% figure()
+% for i=1:K
+%     plot(sqrt(V_baseline(i,:)), 'k-o')
+%     hold on
+%     grid on
+%     plot(sqrt(v_upper), 'r-')
+%     plot(sqrt(v_lower), 'r-')
+% end
 
 
 w = [v_upper - V_baseline(:);
@@ -185,7 +215,7 @@ err_step = [err];
 while (err>err_tol) && (iter<iteration_limit)
     % Update u and lambda
     iter = iter+1;
-    disp(iter)
+    disp([iter, err])
     
     u_old = u;
     lambda_old = lambda;
@@ -195,13 +225,13 @@ while (err>err_tol) && (iter<iteration_limit)
     parfor i = 1:N
         % initialise sdpvar
         
-        disp('working 1')
+%         disp('working 1')
         x = sdpvar(2*T+2*K*T,1);
         p = x(1:T);
         q = x(T+1:2*T);
         s = x(2*T+1:end);
         
-        disp('working 2')
+%         disp('working 2')
         % constraints
         constraints = [];
         
@@ -231,7 +261,7 @@ while (err>err_tol) && (iter<iteration_limit)
             temp = temp +( lambda_old(:,i) + lambda_old(:,neighbors{i}(j)) );
         end
         
-        obj = (eta_simple'*p + kappa*(p'*p)) +...
+        obj = (eta'*p + kappa*(p'*p)) +...
               (step_size/(n_deg(i)*4))*norm( (1/step_size)*(Psi{i}*x - (1/N)*w) - (1/step_size)*nu_old(:,i) +  temp)^2;
         
         options = sdpsettings('verbose',0);
@@ -285,9 +315,9 @@ figure()
 for i=1:K
     plot(sqrt(V_baseline(i,:)), 'rx--')
     hold on
-    plot(sqrt(v_upper), 'k-')
+    plot(1.05*ones(1,T), 'k-')
     hold on
-    plot(sqrt(v_lower), 'k-')
+    plot(0.95*ones(1,T), 'k-')
     grid on
     hold on
     plot(sqrt(V_soln_reshaped(i,:)),'go-')
