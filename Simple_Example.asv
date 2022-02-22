@@ -234,7 +234,7 @@ while (err>err_tol) && (iter<iteration_limit)
         obj = (eta_simple'*p + kappa*(p'*p)) +...
               (step_size/(n_deg(i)*4))*norm( (1/step_size)*(Psi{i}*x - (1/N)*w) - (1/step_size)*nu_old(:,i) +  temp)^2;
         
-        options = sdpsettings('verbose',0);
+        options = sdpsettings('verbose',1);
         optimize(constraints, obj, options);
         u(:,i) = value(x); 
         
@@ -283,13 +283,13 @@ V_soln_reshaped = reshape(V_soln, [K,T]);
 %% Plots
 figure()
 for i=1:K
-    plot(sqrt(V_baseline(i,:)), 'rx--')
+    plot(V_baseline(i,:), 'rx--')
     hold on
-    plot(sqrt(v_upper), 'k-')
+    plot(v_upper, 'k-')
     hold on
-    plot(sqrt(v_lower), 'k-')
+    plot(v_lower, 'k-')
     grid on
     hold on
-    plot(sqrt(V_soln_reshaped(i,:)),'go-')
+    plot(V_soln_reshaped(i,:),'go-')
 end
 

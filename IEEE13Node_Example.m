@@ -192,11 +192,11 @@ v_temp = interp1(x,v,xq);
 
 V_baseline = zeros(K,T);
 
-% for j=1:T
-%     for i=1:K
-%         V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
-%     end
-% end
+for j=1:T
+    for i=1:K
+        V_baseline(i,j) = [v_temp(j)-0.01*v_temp(j)] + 0.02*rand;
+    end
+end
 
 % figure()
 % for i=1:29
@@ -432,7 +432,7 @@ for i=1:N
     temp = temp + D_stack{i}*U(1:T, i) + E_stack{i}*U(T+1:2*T, i);
 end
 
-V_soln = V_baseline(:) + temp;
+V_soln = sqrt(V_baseline(:) + temp);
 
 V_soln_reshaped = reshape(V_soln, [K,T]);
 
