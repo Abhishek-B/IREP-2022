@@ -15,12 +15,12 @@ K = 3;
 arrival = 0; 
 departure = T; 
 
-capacities = [42,21,24,20,30,16,23,16.5,28,60,90,75]; %batteries in MWh
+capacities = [42,21,24,20,30,16,23,16.5,28,60,90,75]; %batteries in kWh
 b = zeros(1,N); 
 for i=1:N
     b(i) = capacities(randi([1,12]));
 end
-s_bar = 10; % Inverter capacity in mega units 
+s_bar = 20; % Inverter capacity in  
 sig_hat = (0.3+0.2*rand(1,N)).*b;
 sig_u = 0.85*b; % max SoC
 sig_l = 0.2*b;  % min SoC
@@ -28,8 +28,8 @@ sig_star = zeros(1,N);
 for i=1:N
     sig_star(i) = ceil(sig_hat(i) + (sig_u(i)-sig_hat(i))*rand);
 end
-p_u = 6.6;  % max charge rate in MWATTS
-p_l = -6.6; % min charge rate in MWATTS
+p_u = 6.6;  % max charge rate in kWATTS
+p_l = -6.6; % min charge rate in kWATTS
 
 % variables defined for linear systems
 alpha_l = sig_l - sig_hat;
@@ -59,7 +59,7 @@ theta = [ones(1,10), zeros(1,10), zeros(1,10);
          zeros(1,10), zeros(1,10), ones(1,10)];
 % theta = eye(N,N);
      
-% Baseline Voltage.
+% Baseline Voltage in kV.
 v0=2.4;
      
 % R X matrices
@@ -209,7 +209,7 @@ end
 
 %% ADMM
 
-iteration_limit=100;
+iteration_limit=300;
 
 step_size = 0.0001;
 err_tol = 1e-3;
@@ -231,7 +231,7 @@ err_step = [err];
 while ((err>err_tol) || isnan(err)) && (iter<iteration_limit) 
     % Update u and lambda
     iter = iter+1;
-    disp([iter, err])
+    disp(strcat("iteration - ",int2str(iter)," | error - ", num2str(err)))
     
     u_old = u;
     lambda_old = lambda;
