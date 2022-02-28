@@ -4,8 +4,6 @@ eventually.
 -January 2022, Abhishek B.
 %}
 
-clear all
-close all
 
 load('AusgridDataset_3yearv4.mat')
 
@@ -188,12 +186,12 @@ for i=1:73
 end
 q10c = (1/cos(theta10c))*p10c;
 
-% figure()
-% plot(p10c)
-% hold on
-% plot(q10c)
-% grid on
-% legend('p','q')
+figure()
+plot(p10c)
+hold on
+plot(q10c)
+grid on
+legend('p','q')
 
 %% Node 11a
 
@@ -226,17 +224,29 @@ Q = [ q1a ; q1b ; q1c ; q2a ; q2b ; q2c ; q3a ; q3b ; q3c ; q4b ; q4c ; ...
      q5b ; q5c ; q6a ; q6b ; q6c ; q7a ; q7b ; q7c ; q8a ; q8b ; q8c ; ...
      q9a ; q9c ; q10c ; q11a ; q12a ; q12b ; q12c];
 
-
+P = P/1000; % Changing units to MWatts from kWatts
+Q = Q/1000; % similar for VARS
+ 
 %% Creating voltage profile from p and q.
 
-v0 = 4.16*ones(29,48);
+v0 = 2.4*ones(29,48);
 
 load('RX.mat')
 
-V = v0 - R*P - X*Q;
+V = v0.^2 - R*P - X*Q;
 
-V_base = (1/4.16)*V; 
+U_base = V;  % V squared units
+V_base = sqrt(V)/2.4;
 
 % Saving the base load
-save('baseload.mat', 'V_base');
+save('baseload.mat', 'U_base', 'V_base');
 
+%%
+
+figure()
+for i=1:29
+    plot(U_base(i,:))
+    plot(V_base(i,:))
+    hold on
+    grid on
+end
