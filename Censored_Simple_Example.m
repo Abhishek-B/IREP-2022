@@ -151,9 +151,9 @@ end
 
 %% ADMM
 
-iteration_limit=100;
+iteration_limit=15;
 
-step_size = 0.0001;
+step_size = 0.00001;
 progress_tol = 1e-3;
 
 % initialise storage
@@ -241,7 +241,6 @@ while ((change>progress_tol) || isnan(change)) && (iter<iteration_limit)
         for j=1:length(neighbors{i})
             temp1 = temp1 + lambda_ADMM(:,i) - lambda_ADMM(:,j);
         end
-        
         nu_ADMM(:,i) = nu_ADMM_old(:,i) + step_size*temp1;
     end
     
@@ -259,40 +258,48 @@ while ((change>progress_tol) || isnan(change)) && (iter<iteration_limit)
     Change_ADMM_step = [Change_ADMM_step, change];
 end
 
-
 %% Censored ADMM Solution
 
-
-iteration_limit=100;
-
-step_size = 0.0001;
+step_size = 0.001;
 progress_tol = 1e-3;
 
 % Censoring parameters
 censoring_rho = 0.7;
 censoring_alpha = 0.5;
 
-% initialise storage
-lambda_cens_step = {};
-nu_cens_step = {};
-u_cens_step = {};
+
 
 % initialise the variables
+xi_cens = zeros(2*K*T, N);
 u_cens = zeros(2*T+2*K*T,N);
 lambda_cens = zeros(2*K*T,N);
 nu_cens = zeros(2*K*T,N);
 
-iter = 0;
+u_state_cens = zeros(2*T+2*K*T,N);
+lambda_state_cens = zeros(2*K*T,N);
+nu_state_cens = zeros(2*K*T,N);
+
+% initialise storage
+lambda_cens_step = {lambda_cens};
+nu_cens_step = {nu_cens};
+u_cens_step = {u_cens};
+lambda_state_cens_step = {lambda_state_cens};
+nu_state_cens_step = {nu_state_cens};
+u_state_cens_step = {u_state_cens};
+
+
+cens_iter = 0;
 change_cens = 1;
 U_cens_err = [];
 Lambda_cens_err = [];
 Nu_cens_err = [];
 Change_cens_step = [change_cens];
 
-while ((change_cens>progress_tol) || isnan(change_cens)) && (iter<iteration_limit) 
+Transmission = zeros(N, iteration_limit);
+
+while ((change_cens>progress_tol) || isnan(change_cens)) && (cens_iter<iteration_limit) 
     % Update u and lambda
-    iter = iter+1;
-    disp(strcat("iteration - ",int2str(iter)," | progress - ", num2str(change_cens)))
+    cens_iter = cens_iter+1;
     
     u_cens_old = u_cens;
     lambda_cens_old = lambda_cens;
@@ -335,7 +342,7 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (iter<iteration_limi
         % states
         temp = 0;
         for j=1:length(neighbors{i})
-            temp = temp +( lambda_cens_old(:,i) + lambda_cens_old(:,neighbors{i}(j)) );
+            temp = temp + ( lambda_state_cens(:,i) + lambda_state_cens(:,neighbors{i}(j)) );
         end
         
         obj = (eta'*p + kappa*(p'*p)) +...
@@ -343,19 +350,32 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (iter<iteration_limi
         
         options = sdpsettings('verbose',0);
         optimize(constraints, obj, options);
-        u_ADMM(:,i) = value(x)/1000; 
+        u_cens(:,i) = value(x)/1000; 
         
-        lambda_ADMM(:,i) = (1/(2*n_deg(i)))*( temp - (1/step_size)*nu_cens_old(:,i) + (1/step_size)*( Psi{i}*u_cens(:,i) - (1/N)*w )  ); 
+        lambda_cens(:,i) = (1/(2*n_deg(i)))*( temp - (1/step_size)*nu_cens_old(:,i) + (1/step_size)*( Psi{i}*u_cens(:,i) - (1/N)*w )  ); 
     end 
     
     u_cens_step{iter} = u_cens;
     lambda_cens_step{iter} = lambda_cens;
     
+    % Transmission Step
+    iter_transmissions = 0;
+    for i=1:N
+        % Computing the difference between current state and primal update
+        xi(:,i) = lambda_state_cens(:,i) - lambda_cens(:,i);
+        % Transmission loop
+        if ( norm(xi(:,i))^2 - censoring_alpha*(censoring_rho^cens_iter) )>=0
+            lambda_state_cens(:,i) = lambda_cens(:,i);
+            Transmission(i,iter) = 1;
+            iter_transmissions = iter_transmissions + 1;
+        end
+    end
+    
     % Updating nu
     parfor i=1:N
         temp1 = 0;
         for j=1:length(neighbors{i})
-            temp1 = temp1 + lambda_cens(:,i) - lambda_cens(:,j);
+            temp1 = temp1 + lambda_state_cens(:,i) - lambda_state_cens(:,j);
         end
         
         nu_cens(:,i) = nu_cens_old(:,i) + step_size*temp1;
@@ -373,9 +393,11 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (iter<iteration_limi
     
     change_cens=max([u_cens_err, nu_cens_err, lambda_cens_err]);
     Change_cens_step = [Change_cens_step, change_cens];
+    
+    
+    disp(strcat("Censored iteration - ",int2str(cens_iter)," | progress - ", num2str(change_cens), " | # transmissions ", num2str(iter_transmissions)))
+    
 end
-
-
 
 %% Reconstruct Voltages from solutions
 
@@ -383,28 +405,102 @@ end
 
 V_soln = zeros(K*T,1);
 
-temp = zeros(K*T,1);
+p_ADMM = {};
+q_ADMM = {};
+p_cens = {};
+q_cens = {};
 for i=1:N
-    temp = temp + D_stack{i}*u_ADMM(1:T, i) + E_stack{i}*u_ADMM(T+1:2*T, i);
+    p_ADMM{i} = u_ADMM(   1:T   , i);
+    q_ADMM{i} = u_ADMM( T+1:2*T , i);
+    p_cens{i} = u_cens(   1:T   , i);
+    q_cens{i} = u_cens( T+1:2*T , i);
 end
+
+V_control_ADMM = zeros(K*T,1);
+V_control_cens = zeros(K*T,1);
+
+for i=1:N
+    V_control_ADMM = V_control_ADMM + D_stack{i}*p_ADMM{i} + E_stack{i}*q_ADMM{i};
+    V_control_cens = V_control_cens + D_stack{i}*p_cens{i} + E_stack{i}*q_cens{i};
+end
+
+V_soln_ADMM = V_stacked + (V_control_ADMM/(v0^2));
+V_soln_cens = V_stacked + (V_control_cens/(v0^2));
+
+V_ADMM_reshaped = reshape(V_soln_ADMM, [K,T]);
+V_cens_reshaped = reshape(V_soln_cens, [K,T]);
+
+% temp = zeros(K*T,1);
+% for i=1:N
+%     temp = temp + D_stack{i}*u_ADMM(1:T, i) + E_stack{i}*u_ADMM(T+1:2*T, i);
+% end
 
 % temp=temp/1000;
 
-V_soln = V_stacked + (temp/(v0^2));
-
-V_soln_reshaped = reshape(V_soln, [K,T]);
+% V_soln = V_stacked + (temp/(v0^2));
+% 
+% V_soln_reshaped = reshape(V_soln, [K,T]);
 
 %% Plots
-figure()
 for i=1:K
+    figure()
+    title(strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
     plot(sqrt(V_b(i,:)), 'rx--')
     hold on
     plot(1.05*ones(1,T), 'k-')
     hold on
     plot(0.95*ones(1,T), 'k-')
-    grid on
     hold on
-    plot(sqrt(V_soln_reshaped(i,:)),'go-')
+    plot(sqrt(V_ADMM_reshaped(i,:)),'g--')
+    hold on
+    plot(sqrt(V_cens_reshaped(i,:)),'b-')
+    grid on
 end
+
+%% Error Plots
+
+Error_U = [];
+Error_L = [];
+Error_N = [];
+
+for i=1:cens_iter-1
+    Error_U = [Error_U, norm( u_cens_step{i} - u_cens_step{i+1}, 'fro' )^2];
+    Error_L = [Error_L, norm( lambda_cens_step{i} - lambda_cens_step{i+1}, 'fro' )^2];
+    Error_N = [Error_N, norm( nu_cens_step{i} - nu_cens_step{i+1}, 'fro' )^2];
+end
+
+alpha = 0.1;
+rho = 0.5;
+
+cens_curve = [];
+
+for i=1:cens_iter
+    cens_curve = [cens_curve, alpha*(rho^i)];
+end
+
+
+figure()
+plot(Error_U, 'rx-')
+hold on
+plot(Error_L, 'bx-')
+hold on 
+plot(Error_N, 'kx-')
+hold on
+plot(cens_curve, 'g-')
+legend('u', 'lambda', 'nu', 'cencoring')
+
+
+% lambda_1 = [];
+% for i=1:cens_iter
+%     lambda_1 = [lambda_1, norm(lambda_cens_step{i}(145,:))^2];
+% end
+% figure()
+% plot(lambda_1)
+
+
+
+
+
+
 
 
