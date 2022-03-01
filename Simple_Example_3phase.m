@@ -3,10 +3,13 @@ Testing the IEEE 13 node feeder.
 Jan 2022 - Abhishek B.
 %}
 set(0,'DefaultFigureWindowStyle','docked')
+rng('default')
+seed = rng;
 %% REES model parameters and such
 
 % Customers, time steps, supply point numbers
-N = 30; 
+cust_at_supply = 25;
+N = 3*cust_at_supply; 
 T = 48;
 K = 3;
 
@@ -20,7 +23,7 @@ b = zeros(1,N);
 for i=1:N
     b(i) = capacities(randi([1,12]));
 end
-s_bar = 20; % Inverter capacity in  
+s_bar = 10; % Inverter capacity in  
 sig_hat = (0.3+0.2*rand(1,N)).*b;
 sig_u = 0.85*b; % max SoC
 sig_l = 0.2*b;  % min SoC
@@ -54,9 +57,9 @@ kappa = 5e-4; %zeros(1,N);
 
 %% Unbalanced dist grid model
 
-theta = [ones(1,10), zeros(1,10), zeros(1,10);
-         zeros(1,10), ones(1,10), zeros(1,10);
-         zeros(1,10), zeros(1,10), ones(1,10)];
+theta = [ones(1,cust_at_supply), zeros(1,cust_at_supply), zeros(1,cust_at_supply);
+         zeros(1,cust_at_supply), ones(1,cust_at_supply), zeros(1,cust_at_supply);
+         zeros(1,cust_at_supply), zeros(1,cust_at_supply), ones(1,cust_at_supply)];
 % theta = eye(N,N);
      
 % Baseline Voltage in kV.
@@ -209,7 +212,7 @@ end
 
 %% ADMM
 
-iteration_limit=300;
+iteration_limit=100;
 
 step_size = 0.0001;
 err_tol = 1e-3;
@@ -226,6 +229,9 @@ nu = zeros(2*K*T,N);
 
 iter = 0;
 err = 1;
+u_err = [1];
+lambda_err = [1];
+nu_err = [1];
 err_step = [err];
 
 while ((err>err_tol) || isnan(err)) && (iter<iteration_limit) 
@@ -299,6 +305,8 @@ while ((err>err_tol) || isnan(err)) && (iter<iteration_limit)
         
         nu(:,i) = nu_old(:,i) + step_size*temp1;
     end
+    
+    nu_step{iter} = nu;
     
     u_err = norm(u_old-u,'fro')^2;
     nu_err = norm(nu_old-nu,'fro')^2;
