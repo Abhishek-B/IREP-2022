@@ -126,8 +126,8 @@ load('baseload.mat');
 % Baseline Voltage in kV.
 v0=2.4;
 
-v_upper = ((1.05)^2)*ones(K*T,1);
-v_lower = ((0.95)^2)*ones(K*T,1);
+v_upper = ((1.04)^2)*ones(K*T,1);
+v_lower = ((0.96)^2)*ones(K*T,1);
 
 U = U_base(1:3, :);
 U_stacked = U(:);
@@ -150,10 +150,10 @@ for i=1:N
 end
 
 %% C/ADMM Parameters
-iteration_limit=20;
+iteration_limit=10;
 
-step_size = 0.001;
-progress_tol = 1e-6;
+step_size = 0.0001;
+progress_tol = 1e-3;
 % Censoring parameters
 censoring_rho = 0.3;
 censoring_alpha = 0.1;
@@ -467,74 +467,74 @@ for i=1:K
 end
 
 %% Error Plots
+
+col = parula(iter); % rgb values of 10 colors
+
+for i=1:3
+    figure()
+    for k=1:iter
+        plot(lambda_ADMM_step{k}(:,i), 'color',col(k,:))
+        hold on
+        grid on
+    end
+    legend('location','northwest')
+end
+
+col = parula(cens_iter);
+for i=1:3
+    figure()
+    for k=1:cens_iter
+        plot(lambda_cens_step{k}(:,i), 'color',col(k,:))
+        hold on
+        grid on
+    end
+    legend('location','northwest')
+end
+
+% Error_U = [];
+% Error_L = {};
+% Error_N = [];
+% Error_LS = [];
 % 
-% col = parula(iter); % rgb values of 10 colors
 % 
-% for i=1:3
-%     figure()
-%     for k=1:iter
-%         plot(lambda_ADMM_step{k}(:,i), 'color',col(k,:))
-%         hold on
-%         grid on
+% for j=1:N
+%     Error_L{j} = [];
+%     for i=1:cens_iter-1
+%         
+%         %     Error_U = [Error_U, norm( u_cens_step{i} - u_cens_step{i+1}, 'fro' )^2];
+%         Error_L{j} = [Error_L{j}, norm( lambda_cens_step{i}(:,j) - lambda_cens_step{i+1}(:,j))^2];
+%         %     Error_N = [Error_N, norm( nu_cens_step{i} - nu_cens_step{i+1}, 'fro' )^2];
+%         %     Error_LS = [Error_LS, norm( lambda_state_cens_step{i}-lambda_state_cens_step{i+1} )^2];
 %     end
-%     legend('location','northwest')
 % end
 % 
-% col = parula(cens_iter);
-% for i=1:3
-%     figure()
-%     for k=1:cens_iter
-%         plot(lambda_cens_step{k}(:,i), 'color',col(k,:))
-%         hold on
-%         grid on
-%     end
-%     legend('location','northwest')
+% cens_curve = [];
+% 
+% for i=1:cens_iter
+%     cens_curve = [cens_curve, censoring_alpha*(censoring_rho^i)];
 % end
 % 
-% % Error_U = [];
-% % Error_L = {};
-% % Error_N = [];
-% % Error_LS = [];
-% % 
-% % 
-% % for j=1:N
-% %     Error_L{j} = [];
-% %     for i=1:cens_iter-1
-% %         
-% %         %     Error_U = [Error_U, norm( u_cens_step{i} - u_cens_step{i+1}, 'fro' )^2];
-% %         Error_L{j} = [Error_L{j}, norm( lambda_cens_step{i}(:,j) - lambda_cens_step{i+1}(:,j))^2];
-% %         %     Error_N = [Error_N, norm( nu_cens_step{i} - nu_cens_step{i+1}, 'fro' )^2];
-% %         %     Error_LS = [Error_LS, norm( lambda_state_cens_step{i}-lambda_state_cens_step{i+1} )^2];
-% %     end
-% % end
-% % 
-% % cens_curve = [];
-% % 
+% 
+% figure()
+% % plot(Error_U, 'rx-')
+% % hold on
+% for j=1:N
+%     plot(Error_L{j}, 'bx-')
+%     hold on 
+% % plot(Error_N, 'kx-')
+% % hold on
+% % plot(Error_LS, 'bo')
+% % % hold on
+% %     plot(cens_curve, 'g-')
+% %     legend('lambda', 'cencoring')
+% end
+% 
+% % lambda_1 = [];
 % % for i=1:cens_iter
-% %     cens_curve = [cens_curve, censoring_alpha*(censoring_rho^i)];
+% %     lambda_1 = [lambda_1, lambda_cens_step{i}(144,1)];
 % % end
-% % 
-% % 
 % % figure()
-% % % plot(Error_U, 'rx-')
-% % % hold on
-% % for j=1:N
-% %     plot(Error_L{j}, 'bx-')
-% %     hold on 
-% % % plot(Error_N, 'kx-')
-% % % hold on
-% % % plot(Error_LS, 'bo')
-% % % % hold on
-% % %     plot(cens_curve, 'g-')
-% % %     legend('lambda', 'cencoring')
-% % end
-% % 
-% % % lambda_1 = [];
-% % % for i=1:cens_iter
-% % %     lambda_1 = [lambda_1, lambda_cens_step{i}(144,1)];
-% % % end
-% % % figure()
-% % % plot(lambda_1)
+% % plot(lambda_1)
 
 
 
@@ -550,6 +550,3 @@ sum_trans = 0;
 for i=1:N
     sum_trans = sum_trans + sum(Transmission(i,:));
 end
-
-imagesc(Transmission);
-colobar;
