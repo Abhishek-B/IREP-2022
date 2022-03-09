@@ -8,7 +8,7 @@ seed = rng;
 %% REES model parameters and such
 
 % Customers, time steps, supply point numbers
-cust_at_supply = 25;
+cust_at_supply = 50;
 N = 3*cust_at_supply; 
 T = 48;
 K = 3;
@@ -23,7 +23,7 @@ b = zeros(1,N);
 for i=1:N
     b(i) = capacities(randi([1,12]));
 end
-s_bar = 10; % Inverter capacity in  
+s_bar = 12; % Inverter capacity in  
 sig_hat = (0.3+0.2*rand(1,N)).*b;
 sig_u = 0.85*b; % max SoC
 sig_l = 0.2*b;  % min SoC
@@ -31,8 +31,8 @@ sig_star = zeros(1,N);
 for i=1:N
     sig_star(i) = ceil(sig_hat(i) + (sig_u(i)-sig_hat(i))*rand);
 end
-p_u = 6.6;  % max charge rate in kWATTS
-p_l = -6.6; % min charge rate in kWATTS
+p_u = 7;  % max charge rate in kWATTS
+p_l = -7; % min charge rate in kWATTS
 
 % variables defined for linear systems
 alpha_l = sig_l - sig_hat;
@@ -50,7 +50,7 @@ eta(21:38) = 0.15;
 eta(39:48) = 0.23;
 
 % Regularization paramters for cost
-kappa = 5e-4; %zeros(1,N);
+kappa = 5e-2; %zeros(1,N);
 
 %% Unbalanced dist grid model
 
@@ -82,8 +82,8 @@ end
 
 
 % matrices D and E
-D = -R*theta;
-E = -X*theta;
+D = -(1/1000)*R*theta;
+E = -(1/1000)*X*theta;
 
 D_stack = {};
 for i=1:N
@@ -126,8 +126,10 @@ load('baseload.mat');
 % Baseline Voltage in kV.
 v0=2.4;
 
-v_upper = ((1.05)^2)*ones(K*T,1);
-v_lower = ((0.95)^2)*ones(K*T,1);
+percentage = 0.05;
+
+v_upper = ((1+percentage)^2)*ones(K*T,1);
+v_lower = ((1-percentage)^2)*ones(K*T,1);
 
 U = U_base(1:3, :);
 U_stacked = U(:);
@@ -149,14 +151,11 @@ for i=1:N
     neighbors{i} = find(Adjacency(:,i));
 end
 
-%% C/ADMM Parameters
-iteration_limit=20;
+%% ADMM Parameters
+iteration_limit=30;
 
-step_size = 0.001;
-progress_tol = 1e-6;
-% Censoring parameters
-censoring_rho = 0.3;
-censoring_alpha = 0.1;
+step_size = 100;
+progress_tol = 1e-3;
 %% ADMM
 
 % initialise storage
@@ -176,6 +175,8 @@ Lambda_ADMM_err = [];
 Nu_ADMM_err = [];
 Change_ADMM_step = [change];
 time_ADMM = [];
+
+disp("Computing ADMM solutions")
 
 while ((change>progress_tol) || isnan(change)) && (iter<iteration_limit) 
     % Update u and lambda
@@ -227,11 +228,11 @@ while ((change>progress_tol) || isnan(change)) && (iter<iteration_limit)
         end
         
         obj = (eta'*p + kappa*(p'*p)) +...
-              (step_size/(n_deg(i)*4))*norm( (1/step_size)*(Psi{i}*(x/1000) - (1/N)*w) - (1/step_size)*nu_ADMM_old(:,i) +  temp)^2;
+              (step_size/(n_deg(i)*4))*norm( (1/step_size)*(Psi{i}*(x) - (1/N)*w) - (1/step_size)*nu_ADMM_old(:,i) +  temp)^2;
         
         options = sdpsettings('verbose',0);
         optimize(constraints, obj, options);
-        u_ADMM(:,i) = value(x)/1000; 
+        u_ADMM(:,i) = value(x); 
         
         lambda_ADMM(:,i) = (1/(2*n_deg(i)))*( temp - (1/step_size)*nu_ADMM_old(:,i) + (1/step_size)*( Psi{i}*u_ADMM(:,i) - (1/N)*w )  ); 
     end 
@@ -264,9 +265,105 @@ while ((change>progress_tol) || isnan(change)) && (iter<iteration_limit)
     time_taken = toc;
     time_ADMM = [time_ADMM, time_taken];
 
-    disp(strcat("iter - ",int2str(iter)," | prog - ", num2str(change), " | time - ", num2str(round(time_taken/60,1))))
+    disp(strcat("iter - ",int2str(iter)," | prog - ", num2str(round(change,11)), " | time - ", num2str(round(time_taken/60,1))))
 
 end
+
+%% ADMM Plot
+% 
+% % disp(V_baseline)
+% 
+% V_soln = zeros(K*T,1);
+% 
+% p_ADMM = {};
+% q_ADMM = {};
+% % p_cens = {};
+% % q_cens = {};
+% for i=1:N
+%     p_ADMM{i} = u_ADMM(   1:T   , i);
+%     q_ADMM{i} = u_ADMM( T+1:2*T , i);
+% %     p_cens{i} = u_cens(   1:T   , i);
+% %     q_cens{i} = u_cens( T+1:2*T , i);
+% end
+% 
+% V_control_ADMM = zeros(K*T,1);
+% % V_control_cens = zeros(K*T,1);
+% 
+% for i=1:N
+%     V_control_ADMM = V_control_ADMM + D_stack{i}*p_ADMM{i} + E_stack{i}*q_ADMM{i};
+% %     V_control_cens = V_control_cens + D_stack{i}*p_cens{i} + E_stack{i}*q_cens{i};
+% end
+% 
+% V_soln_ADMM = V_stacked + (V_control_ADMM/(v0^2));
+% % V_soln_cens = V_stacked + (V_control_cens/(v0^2));
+% 
+% V_ADMM_reshaped = reshape(V_soln_ADMM, [K,T]);
+% % V_cens_reshaped = reshape(V_soln_cens, [K,T]);
+% 
+% p_aggregate = {};
+% q_aggregate = {};
+% 
+% for i=1:K
+%     p = zeros(48,1);
+%     q = zeros(48,1);
+%     if i==1
+%         for j=1:30
+%             p = p + p_ADMM{j};
+%             q = q + q_ADMM{j};
+%         end
+%     elseif i==2
+%         for j=31:60
+%             p = p + p_ADMM{j};
+%             q = q + q_ADMM{j};
+%         end
+%     elseif i==3
+%         for j=61:90
+%             p = p + p_ADMM{j};
+%             q = q + q_ADMM{j};
+%         end
+%     end
+%     p_aggregate{i} = p;
+%     q_aggregate{i} = q;
+% end
+% 
+% for i=1:K
+%     figure()
+%     tiledlayout(3,1)
+%     
+%     ax1 = nexttile;
+%     plot(ax1,sqrt(V_b(i,:)), 'rx--')
+%     hold on
+%     plot(ax1,(1+percentage)*ones(1,T), 'k-')
+%     hold on
+%     plot(ax1,(1-percentage)*ones(1,T), 'k-')
+%     hold on
+%     plot(ax1,sqrt(V_ADMM_reshaped(i,:)),'g--')
+%     hold on
+% %     plot(ax1,sqrt(V_cens_reshaped(i,:)),'bo')
+%     grid on
+%     title(ax1, strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
+%     
+%     ax2 = nexttile;
+%     plot(ax2,p_aggregate{i})
+%     hold on
+%     plot(ax2,zeros(48,1),'k--')
+%     grid on
+%     title(ax2, strcat("Real power aggregate of Node ", num2str(i)))
+%     
+%     ax3 = nexttile;
+%     plot(ax3,q_aggregate{i})
+%     hold on
+%     plot(ax3,zeros(48,1),'k--')
+%     grid on
+%     title(ax3, strcat("Reactive power aggregate of Node ", num2str(i)))
+% 
+% end
+
+%% CADMM parameters
+% Censoring parameters
+censoring_rho = 0.98;
+censoring_alpha = 1e-12;
+censoring_r = 1e-12;
 
 %% Censored ADMM Solution
 
@@ -297,7 +394,11 @@ Nu_cens_err = [];
 Change_cens_step = [change_cens];
 time_cens = [];
 
+xi_step = {};
+
 Transmission = zeros(N, iteration_limit);
+
+disp("Computing censored solutions")
 
 while ((change_cens>progress_tol) || isnan(change_cens)) && (cens_iter<iteration_limit) 
     % Update u and lambda
@@ -349,11 +450,11 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (cens_iter<iteration
         end
         
         obj = (eta'*p + kappa*(p'*p)) +...
-              (step_size/(n_deg(i)*4))*norm( (1/step_size)*(Psi{i}*(x/1000) - (1/N)*w) - (1/step_size)*nu_cens_old(:,i) +  temp)^2;
+              (step_size/(n_deg(i)*4))*norm( (1/step_size)*(Psi{i}*(x) - (1/N)*w) - (1/step_size)*nu_cens_old(:,i) +  temp)^2;
         
         options = sdpsettings('verbose',0);
         optimize(constraints, obj, options);
-        u_cens(:,i) = value(x)/1000; 
+        u_cens(:,i) = value(x); 
         
         lambda_cens(:,i) = (1/(2*n_deg(i)))*( temp - (1/step_size)*nu_cens_old(:,i) + (1/step_size)*( Psi{i}*u_cens(:,i) - (1/N)*w )  ); 
     end 
@@ -366,13 +467,16 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (cens_iter<iteration
     for i=1:N
         % Computing the difference between current state and primal update
         xi(:,i) = lambda_state_cens(:,i) - lambda_cens(:,i);
+        disp(norm(xi(:,i))^2)
         % Transmission loop
-        if ( norm(xi(:,i))^2 - censoring_alpha*(censoring_rho^cens_iter) )>=0
+        if ( norm(xi(:,i))^2 - censoring_alpha*( censoring_rho^cens_iter ) )>=0
             lambda_state_cens(:,i) = lambda_cens(:,i);
             Transmission(i,cens_iter) = 1;
             iter_transmissions = iter_transmissions + 1;
         end
     end
+    
+%     xi_step{cens_iter} = xi;
     
     lambda_state_cens_step{cens_iter} = lambda_state_cens;
     
@@ -402,13 +506,13 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (cens_iter<iteration
     time_taken = toc;
     time_cens = [time_cens, time_taken];
     
-    disp(strcat("Citer - ",int2str(cens_iter)," | prog - ", num2str(round(change_cens,4)), " | # ", num2str(iter_transmissions), " | time - ", num2str(round(time_taken/60,1))))
+    disp(strcat("Citer - ",int2str(cens_iter)," | prog - ", num2str(round(change_cens,11)), " | # ", num2str(iter_transmissions), " | time - ", num2str(round(time_taken/60,1))))
     
 end
 
 beep;
 
-%% Reconstruct Voltages from solutions
+%% Plotting Solutions
 
 % disp(V_baseline)
 
@@ -439,31 +543,63 @@ V_soln_cens = V_stacked + (V_control_cens/(v0^2));
 V_ADMM_reshaped = reshape(V_soln_ADMM, [K,T]);
 V_cens_reshaped = reshape(V_soln_cens, [K,T]);
 
-% temp = zeros(K*T,1);
-% for i=1:N
-%     temp = temp + D_stack{i}*u_ADMM(1:T, i) + E_stack{i}*u_ADMM(T+1:2*T, i);
-% end
+p_aggregate = {};
+q_aggregate = {};
 
-% temp=temp/1000;
+for i=1:K
+    p = zeros(48,1);
+    q = zeros(48,1);
+    if i==1
+        for j=1:30
+            p = p + p_ADMM{j};
+            q = q + q_ADMM{j};
+        end
+    elseif i==2
+        for j=31:60
+            p = p + p_ADMM{j};
+            q = q + q_ADMM{j};
+        end
+    elseif i==3
+        for j=61:90
+            p = p + p_ADMM{j};
+            q = q + q_ADMM{j};
+        end
+    end
+    p_aggregate{i} = p;
+    q_aggregate{i} = q;
+end
 
-% V_soln = V_stacked + (temp/(v0^2));
-% 
-% V_soln_reshaped = reshape(V_soln, [K,T]);
-
-%% Plots
 for i=1:K
     figure()
-    title(strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
-    plot(sqrt(V_b(i,:)), 'rx--')
+    tiledlayout(3,1)
+    
+    ax1 = nexttile;
+    plot(ax1,sqrt(V_b(i,:)), 'rx--')
     hold on
-    plot(1.04*ones(1,T), 'k-')
+    plot(ax1,(1+percentage)*ones(1,T), 'k-')
     hold on
-    plot(0.96*ones(1,T), 'k-')
+    plot(ax1,(1-percentage)*ones(1,T), 'k-')
     hold on
-    plot(sqrt(V_ADMM_reshaped(i,:)),'g--')
+    plot(ax1,sqrt(V_ADMM_reshaped(i,:)),'g--')
     hold on
-    plot(sqrt(V_cens_reshaped(i,:)),'bo')
+    plot(ax1,sqrt(V_cens_reshaped(i,:)),'bo')
     grid on
+    title(ax1, strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
+    
+    ax2 = nexttile;
+    plot(ax2,p_aggregate{i})
+    hold on
+    plot(ax2,zeros(48,1),'k--')
+    grid on
+    title(ax2, strcat("Real power aggregate of Node ", num2str(i)))
+    
+    ax3 = nexttile;
+    plot(ax3,q_aggregate{i})
+    hold on
+    plot(ax3,zeros(48,1),'k--')
+    grid on
+    title(ax3, strcat("Reactive power aggregate of Node ", num2str(i)))
+
 end
 
 %% Error Plots
@@ -536,14 +672,6 @@ end
 % % % figure()
 % % % plot(lambda_1)
 
-
-
-
-
-
-
-
-
 %% sum of transmissions
 
 sum_trans = 0;
@@ -551,5 +679,8 @@ for i=1:N
     sum_trans = sum_trans + sum(Transmission(i,:));
 end
 
-imagesc(Transmission);
-colobar;
+figure()
+clims=[0,1];
+imagesc(Transmission, clims);
+colormap(gray(256));
+colorbar;
