@@ -467,7 +467,7 @@ while ((change_cens>progress_tol) || isnan(change_cens)) && (cens_iter<iteration
     for i=1:N
         % Computing the difference between current state and primal update
         xi(:,i) = lambda_state_cens(:,i) - lambda_cens(:,i);
-        disp(norm(xi(:,i))^2)
+%         disp(norm(xi(:,i))^2)
         % Transmission loop
         if ( norm(xi(:,i))^2 - censoring_alpha*( censoring_rho^cens_iter ) )>=0
             lambda_state_cens(:,i) = lambda_cens(:,i);
@@ -569,38 +569,73 @@ for i=1:K
     q_aggregate{i} = q;
 end
 
-for i=1:K
-    figure()
-    tiledlayout(3,1)
-    
-    ax1 = nexttile;
-    plot(ax1,sqrt(V_b(i,:)), 'rx--')
-    hold on
-    plot(ax1,(1+percentage)*ones(1,T), 'k-')
-    hold on
-    plot(ax1,(1-percentage)*ones(1,T), 'k-')
-    hold on
-    plot(ax1,sqrt(V_ADMM_reshaped(i,:)),'g--')
-    hold on
-    plot(ax1,sqrt(V_cens_reshaped(i,:)),'bo')
-    grid on
-    title(ax1, strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
-    
-    ax2 = nexttile;
-    plot(ax2,p_aggregate{i})
-    hold on
-    plot(ax2,zeros(48,1),'k--')
-    grid on
-    title(ax2, strcat("Real power aggregate of Node ", num2str(i)))
-    
-    ax3 = nexttile;
-    plot(ax3,q_aggregate{i})
-    hold on
-    plot(ax3,zeros(48,1),'k--')
-    grid on
-    title(ax3, strcat("Reactive power aggregate of Node ", num2str(i)))
+figure()
+plot(sqrt(V_b(1,:)), '-','color',[0.4660 0.6740 0.1880], 'DisplayName', 'Baseline Voltage - Phase 1')
+hold on
+plot(sqrt(V_ADMM_reshaped(1,:)),'-^','color',[0.4660 0.6740 0.1880], 'DisplayName', 'Dis-Net-EVCD - Phase 1')
+hold on
+plot(sqrt(V_cens_reshaped(1,:)),'-p','color',[0.4660 0.6740 0.1880], 'DisplayName', 'Algorithm 1 - Phase 1')
+hold on
+plot(sqrt(V_b(2,:)), '-r', 'DisplayName', 'Baseline Voltage - Phase 2')
+hold on
+plot(sqrt(V_ADMM_reshaped(2,:)),'-r^', 'DisplayName', 'Dis-Net-EVCD - Phase 2')
+hold on
+plot(sqrt(V_cens_reshaped(2,:)),'-rp', 'DisplayName', 'Algorithm 1 - Phase 2')
+hold on
+plot(sqrt(V_b(3,:)), 'b-', 'DisplayName', 'Baseline Voltage - Phase 3')
+hold on
+plot(sqrt(V_ADMM_reshaped(3,:)),'b^-', 'DisplayName', 'Dis-Net-EVCD - Phase 3')
+hold on
+plot(sqrt(V_cens_reshaped(3,:)),'bp-', 'DisplayName', 'Algorithm 1 - Phase 3')
+grid on
+plot((1+percentage)*ones(1,T), 'k--')
+hold on
+plot((1-percentage)*ones(1,T), 'k--')
+hold on
+title("Voltage Profile at Node 1")
+lgd = legend('Baseline Voltage - Phase 1', 'Dis-Net-EVCD - Phase 1', 'Algorithm 1 - Phase 1', ...
+    'Baseline Voltage - Phase 2', 'Dis-Net-EVCD - Phase 2', 'Algorithm 1 - Phase 2', ...
+    'Baseline Voltage - Phase 3', 'Dis-Net-EVCD - Phase 3', 'Algorithm 1 - Phase 3', '', '');
+lgd.NumColumns=3;
+lgd.FontSize = 14;
+ylabel("Nodal Voltage (p.u.)")
+xlim([1,48])
+xlabel("Time of day")
+xticks([1, 12, 24, 36, 48])
+xticklabels(["12am", "6am", "12pm", "6pm", "12am"])
+yticks([0.94:0.01:1.6])
 
-end
+
+%     tiledlayout(3,1)
+    
+%     ax1 = nexttile;
+%     plot(ax1,sqrt(V_b(i,:)), 'rx--')
+%     hold on
+%     plot(ax1,(1+percentage)*ones(1,T), 'k-')
+%     hold on
+%     plot(ax1,(1-percentage)*ones(1,T), 'k-')
+%     hold on
+%     plot(ax1,sqrt(V_ADMM_reshaped(i,:)),'g--')
+%     hold on
+%     plot(ax1,sqrt(V_cens_reshaped(i,:)),'bo')
+%     grid on
+%     title(ax1, strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
+%     
+%     ax2 = nexttile;
+%     plot(ax2,p_aggregate{i})
+%     hold on
+%     plot(ax2,zeros(48,1),'k--')
+%     grid on
+%     title(ax2, strcat("Real power aggregate of Node ", num2str(i)))
+%     
+%     ax3 = nexttile;
+%     plot(ax3,q_aggregate{i})
+%     hold on
+%     plot(ax3,zeros(48,1),'k--')
+%     grid on
+%     title(ax3, strcat("Reactive power aggregate of Node ", num2str(i)))
+
+% end
 
 %% Error Plots
 % 
@@ -683,4 +718,5 @@ figure()
 clims=[0,1];
 imagesc(Transmission, clims);
 colormap(gray(256));
-colorbar;
+xlabel("Iteration")
+ylabel("Customer ID")
