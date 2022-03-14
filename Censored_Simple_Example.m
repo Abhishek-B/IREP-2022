@@ -50,7 +50,7 @@ eta(21:38) = 0.15;
 eta(39:48) = 0.23;
 
 % Regularization paramters for cost
-kappa = 5e-2; %zeros(1,N);
+kappa = 5e-4; %zeros(1,N);
 
 %% Unbalanced dist grid model
 
@@ -593,18 +593,19 @@ hold on
 plot((1-percentage)*ones(1,T), 'k--')
 hold on
 title("Voltage Profile at Node 1")
-lgd = legend('Baseline Voltage - Phase 1', 'Dis-Net-EVCD - Phase 1', 'Algorithm 1 - Phase 1', ...
-    'Baseline Voltage - Phase 2', 'Dis-Net-EVCD - Phase 2', 'Algorithm 1 - Phase 2', ...
-    'Baseline Voltage - Phase 3', 'Dis-Net-EVCD - Phase 3', 'Algorithm 1 - Phase 3', '', '');
+lgd = legend('Baseline Voltage - Phase 1', 'Benchmark - Phase 1', 'CC-ADMM - Phase 1', ...
+    'Baseline Voltage - Phase 2', 'Benchmark - Phase 2', 'CC-ADMM - Phase 2', ...
+    'Baseline Voltage - Phase 3', 'Benchmark - Phase 3', 'CC-ADMM - Phase 3', '', '');
 lgd.NumColumns=3;
-lgd.FontSize = 14;
+lgd.FontSize = 20;
 ylabel("Nodal Voltage (p.u.)")
 xlim([1,48])
 xlabel("Time of day")
 xticks([1, 12, 24, 36, 48])
 xticklabels(["12am", "6am", "12pm", "6pm", "12am"])
-yticks([0.94:0.01:1.6])
-
+yticks([0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06])
+yticklabels([" ", "0.95"," "," "," "," ","1.00"," "," "," "," ","1.05"," "])
+set(findall(gcf,'-property','FontSize'),'FontSize',20)
 
 %     tiledlayout(3,1)
     
@@ -718,5 +719,9 @@ figure()
 clims=[0,1];
 imagesc(Transmission, clims);
 colormap(gray(256));
+title("Communication Censoring Pattern")
 xlabel("Iteration")
 ylabel("Customer ID")
+yticks([0:50:150])
+xticks([0:10:30])
+set(findall(gcf,'-property','FontSize'),'FontSize',30)

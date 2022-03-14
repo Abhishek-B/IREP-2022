@@ -51,7 +51,7 @@ eta(21:38) = 0.15;
 eta(39:48) = 0.23;
 
 % Regularization paramters for cost
-kappa = 5e-2; %zeros(1,N);
+kappa = 5e-4; %zeros(1,N);
 
 %% Unbalanced dist grid model
 
@@ -143,16 +143,33 @@ w = [v_upper - V_stacked;
 
 %% Graph parameters setup
 % Comms network
+
+% This was not doing what I wanted. Changed below.
+% Adjacency = zeros(N,N);
+% for i=1:N
+%     for j=1:N
+%         if (i+1)<=j && j<=(i+50)
+%             Adjacency(i,j) = 1;
+%         end
+%     end
+% end
+% 
+% Adjacency = Adjacency + Adjacency';
+
+
+% This is doign what I want. Everyone talks to their next 50 neighbors
+% cyclically.
 Adjacency = zeros(N,N);
+
 for i=1:N
-    for j=1:N
-        if j==(i+1)
+    for j=i+1:i+35
+        if j<=N
             Adjacency(i,j) = 1;
+        elseif j>N
+            Adjacency(i, mod(j,N)) = 1;
         end
     end
 end
-
-Adjacency(1,N) = 1;
 
 Adjacency = Adjacency + Adjacency';
 
@@ -163,7 +180,6 @@ neighbors = {};
 for i=1:N
     neighbors{i} = find(Adjacency(:,i));
 end
-
 %% ADMM Parameters
 iteration_limit=30;
 
@@ -375,12 +391,15 @@ end
 
 %% Continue with CADMM?
 
-user = input("Continue with C-ADMM?");
+user = input("Continue with C-ADMM?", "s");
+if user == "stop"
+    error("Code stopped")
+end
 
 %% CADMM parameters
 % Censoring parameters
-censoring_rho = 0.97;
-censoring_alpha = 5e-10;
+censoring_rho = 0.95;
+censoring_alpha = 1e-11; %1e-12 seems good.
 censoring_r = 1e-12;
 
 %% Censored ADMM Solution
@@ -620,6 +639,129 @@ for i=1:K
 
 end
 
+%% Nicer Plots
+% disp(V_baseline)
+
+V_soln = zeros(K*T,1);
+
+p_ADMM = {};
+q_ADMM = {};
+p_cens = {};
+q_cens = {};
+for i=1:N
+    p_ADMM{i} = u_ADMM(   1:T   , i);
+    q_ADMM{i} = u_ADMM( T+1:2*T , i);
+    p_cens{i} = u_cens(   1:T   , i);
+    q_cens{i} = u_cens( T+1:2*T , i);
+end
+
+V_control_ADMM = zeros(K*T,1);
+V_control_cens = zeros(K*T,1);
+
+for i=1:N
+    V_control_ADMM = V_control_ADMM + D_stack{i}*p_ADMM{i} + E_stack{i}*q_ADMM{i};
+    V_control_cens = V_control_cens + D_stack{i}*p_cens{i} + E_stack{i}*q_cens{i};
+end
+
+V_soln_ADMM = V_stacked + (V_control_ADMM/(v0^2));
+V_soln_cens = V_stacked + (V_control_cens/(v0^2));
+
+V_ADMM_reshaped = reshape(V_soln_ADMM, [K,T]);
+V_cens_reshaped = reshape(V_soln_cens, [K,T]);
+
+p_aggregate = {};
+q_aggregate = {};
+
+for i=1:K
+    p = zeros(48,1);
+    q = zeros(48,1);
+    if i==1
+        for j=1:30
+            p = p + p_ADMM{j};
+            q = q + q_ADMM{j};
+        end
+    elseif i==2
+        for j=31:60
+            p = p + p_ADMM{j};
+            q = q + q_ADMM{j};
+        end
+    elseif i==3
+        for j=61:90
+            p = p + p_ADMM{j};
+            q = q + q_ADMM{j};
+        end
+    end
+    p_aggregate{i} = p;
+    q_aggregate{i} = q;
+end
+
+figure()
+plot(sqrt(V_b(1,:)), '-','color',[0.4660 0.6740 0.1880], 'DisplayName', 'Baseline Voltage - Phase 1')
+hold on
+plot(sqrt(V_ADMM_reshaped(1,:)),'-^','color',[0.4660 0.6740 0.1880], 'DisplayName', 'Dis-Net-EVCD - Phase 1')
+hold on
+plot(sqrt(V_cens_reshaped(1,:)),'-p','color',[0.4660 0.6740 0.1880], 'DisplayName', 'Algorithm 1 - Phase 1')
+hold on
+plot(sqrt(V_b(2,:)), '-r', 'DisplayName', 'Baseline Voltage - Phase 2')
+hold on
+plot(sqrt(V_ADMM_reshaped(2,:)),'-r^', 'DisplayName', 'Dis-Net-EVCD - Phase 2')
+hold on
+plot(sqrt(V_cens_reshaped(2,:)),'-rp', 'DisplayName', 'Algorithm 1 - Phase 2')
+hold on
+plot(sqrt(V_b(3,:)), 'b-', 'DisplayName', 'Baseline Voltage - Phase 3')
+hold on
+plot(sqrt(V_ADMM_reshaped(3,:)),'b^-', 'DisplayName', 'Dis-Net-EVCD - Phase 3')
+hold on
+plot(sqrt(V_cens_reshaped(3,:)),'bp-', 'DisplayName', 'Algorithm 1 - Phase 3')
+grid on
+plot((1+percentage)*ones(1,T), 'k--')
+hold on
+plot((1-percentage)*ones(1,T), 'k--')
+hold on
+title("Voltage Profile at Node 1")
+lgd = legend('Baseline Voltage - Phase 1', 'Benchmark - Phase 1', 'CC-ADMM - Phase 1', ...
+    'Baseline Voltage - Phase 2', 'Benchmark - Phase 2', 'CC-ADMM - Phase 2', ...
+    'Baseline Voltage - Phase 3', 'Benchmark - Phase 3', 'CC-ADMM - Phase 3', '', '');
+lgd.NumColumns=3;
+lgd.FontSize = 20;
+ylabel("Nodal Voltage (p.u.)")
+xlim([1,48])
+xlabel("Time of day")
+xticks([1, 12, 24, 36, 48])
+xticklabels(["12am", "6am", "12pm", "6pm", "12am"])
+yticks([0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06])
+yticklabels([" ", "0.95"," "," "," "," ","1.00"," "," "," "," ","1.05"," "])
+set(findall(gcf,'-property','FontSize'),'FontSize',20)
+
+%     tiledlayout(3,1)
+    
+%     ax1 = nexttile;
+%     plot(ax1,sqrt(V_b(i,:)), 'rx--')
+%     hold on
+%     plot(ax1,(1+percentage)*ones(1,T), 'k-')
+%     hold on
+%     plot(ax1,(1-percentage)*ones(1,T), 'k-')
+%     hold on
+%     plot(ax1,sqrt(V_ADMM_reshaped(i,:)),'g--')
+%     hold on
+%     plot(ax1,sqrt(V_cens_reshaped(i,:)),'bo')
+%     grid on
+%     title(ax1, strcat("Baseline Voltage and Control Voltage of Node ", num2str(i)))
+%     
+%     ax2 = nexttile;
+%     plot(ax2,p_aggregate{i})
+%     hold on
+%     plot(ax2,zeros(48,1),'k--')
+%     grid on
+%     title(ax2, strcat("Real power aggregate of Node ", num2str(i)))
+%     
+%     ax3 = nexttile;
+%     plot(ax3,q_aggregate{i})
+%     hold on
+%     plot(ax3,zeros(48,1),'k--')
+%     grid on
+%     title(ax3, strcat("Reactive power aggregate of Node ", num2str(i)))
+
 %% Error Plots
 % 
 % col = parula(iter); % rgb values of 10 colors
@@ -692,6 +834,16 @@ end
 
 %% sum of transmissions
 
+% sum_trans = 0;
+% for i=1:N
+%     sum_trans = sum_trans + sum(Transmission(i,:));
+% end
+% 
+% figure()
+% clims=[0,1];
+% imagesc(Transmission, clims);
+% colormap(gray(256));
+% colorbar;
 sum_trans = 0;
 for i=1:N
     sum_trans = sum_trans + sum(Transmission(i,:));
@@ -701,4 +853,9 @@ figure()
 clims=[0,1];
 imagesc(Transmission, clims);
 colormap(gray(256));
-colorbar;
+title("Communication Censoring Pattern")
+xlabel("Iteration")
+ylabel("Customer ID")
+yticks([0:50:150])
+xticks([0:10:30])
+set(findall(gcf,'-property','FontSize'),'FontSize',30)
