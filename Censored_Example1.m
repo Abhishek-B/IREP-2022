@@ -597,7 +597,7 @@ lgd = legend('Baseline Voltage - Phase 1', 'Benchmark - Phase 1', 'CC-ADMM - Pha
     'Baseline Voltage - Phase 2', 'Benchmark - Phase 2', 'CC-ADMM - Phase 2', ...
     'Baseline Voltage - Phase 3', 'Benchmark - Phase 3', 'CC-ADMM - Phase 3', '', '');
 lgd.NumColumns=3;
-lgd.FontSize = 20;
+lgd.FontSize = 26;
 ylabel("Nodal Voltage (p.u.)")
 xlim([1,48])
 xlabel("Time of day")
@@ -605,7 +605,7 @@ xticks([1, 12, 24, 36, 48])
 xticklabels(["12am", "6am", "12pm", "6pm", "12am"])
 yticks([0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06])
 yticklabels([" ", "0.95"," "," "," "," ","1.00"," "," "," "," ","1.05"," "])
-set(findall(gcf,'-property','FontSize'),'FontSize',20)
+set(findall(gcf,'-property','FontSize'),'FontSize',26)
 
 %     tiledlayout(3,1)
     
@@ -724,4 +724,4 @@ xlabel("Iteration")
 ylabel("Customer ID")
 yticks([0:50:150])
 xticks([0:10:30])
-set(findall(gcf,'-property','FontSize'),'FontSize',30)
+set(findall(gcf,'-property','FontSize'),'FontSize',36)

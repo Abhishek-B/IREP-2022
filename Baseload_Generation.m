@@ -6,6 +6,7 @@ eventually.
 
 
 load('AusgridDataset_3yearv4.mat')
+set(0,'DefaultFigureWindowStyle','docked')
 
 %%
 
@@ -245,8 +246,17 @@ save('baseload.mat', 'U_base', 'V_base');
 
 figure()
 for i=1:29
-    plot(U_base(i,:))
+%     plot(U_base(i,:))
     plot(V_base(i,:))
     hold on
     grid on
 end
+title("Voltage Profile at Node 1")
+ylabel("Nodal Voltage (p.u.)")
+xlim([1,48])
+xlabel("Time of day")
+xticks([1, 12, 24, 36, 48])
+xticklabels(["12am", "6am", "12pm", "6pm", "12am"])
+yticks([0.86, 0.87, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00, 1.01, 1.02])
+yticklabels(["0.86", "", "", "", "0.9", "", "", "", "" ,"0.95","","","","","1.00", "","1.02"])
+set(findall(gcf,'-property','FontSize'),'FontSize',36)
